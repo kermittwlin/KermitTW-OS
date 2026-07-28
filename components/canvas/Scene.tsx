@@ -1080,7 +1080,7 @@ const ArcSegment = ({ radius, startAngle, endAngle, color = "#ffffff", opacity =
 };
 
 /* ── MomentNode (data-driven, supports empty/filled states) ── */
-const MomentNode = ({ moment, onClick }: { moment: MomentData; onClick: () => void }) => {
+const MomentNode = ({ moment, onClick, isTouchDevice = false }: { moment: MomentData; onClick: () => void; isTouchDevice?: boolean }) => {
   const [hovered, setHovered] = useState(false);
   const ref = useRef<THREE.Group>(null!);
   const ref2 = useRef<THREE.Group>(null!);
@@ -1149,10 +1149,10 @@ const MomentNode = ({ moment, onClick }: { moment: MomentData; onClick: () => vo
         {/* Clickable sphere */}
         <mesh
           onClick={(e) => { e.stopPropagation(); if (hasContent) { playClick(); onClick(); } }}
-          onPointerOver={() => { setHovered(true); playHover(); }}
-          onPointerOut={() => setHovered(false)}
+          onPointerOver={isTouchDevice ? undefined : () => { setHovered(true); playHover(); }}
+          onPointerOut={isTouchDevice ? undefined : () => setHovered(false)}
         >
-          <sphereGeometry args={[hovered ? 0.36 : 0.26, 16, 16]} />
+          <sphereGeometry args={[isTouchDevice ? 0.4 : (hovered ? 0.36 : 0.26), 16, 16]} />
           <meshBasicMaterial color={color} transparent opacity={hovered ? 0.3 : (hasContent ? 0.15 : 0.05)} />
         </mesh>
         {/* Core dot */}
@@ -1310,7 +1310,7 @@ const DecorativeParticles = () => {
 };
 
 /* ── Scene ── */
-export default function Scene({ onLocationChange, onNodeClick, onRegisterFlyTo }: { onLocationChange: (loc: string) => void; onNodeClick: (nodeId: string) => void; onRegisterFlyTo?: (fn: (pos: [number, number, number], id: string) => void) => void }) {
+export default function Scene({ onLocationChange, onNodeClick, onRegisterFlyTo, isTouchDevice = false }: { onLocationChange: (loc: string) => void; onNodeClick: (nodeId: string) => void; onRegisterFlyTo?: (fn: (pos: [number, number, number], id: string) => void) => void; isTouchDevice?: boolean }) {
   const { camera } = useThree();
 
   const flyTo = useCallback((pos: [number, number, number], label: string) => {
@@ -1354,13 +1354,16 @@ export default function Scene({ onLocationChange, onNodeClick, onRegisterFlyTo }
           key={m.id}
           moment={m}
           onClick={() => flyTo(m.position, m.id)}
+          isTouchDevice={isTouchDevice}
         />
       ))}
-      <MouseTrail />
-      <mesh position={[0, 0, 0]} onClick={() => resetCamera()}>
-        <sphereGeometry args={[0.6, 32, 32]} />
-        <meshBasicMaterial transparent opacity={0} />
-      </mesh>
+      {!isTouchDevice && <MouseTrail />}
+      {!isTouchDevice && (
+        <mesh position={[0, 0, 0]} onClick={() => resetCamera()}>
+          <sphereGeometry args={[0.6, 32, 32]} />
+          <meshBasicMaterial transparent opacity={0} />
+        </mesh>
+      )}
     </>
   );
 }

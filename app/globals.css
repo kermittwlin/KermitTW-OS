@@ -40,3 +40,33 @@ body {
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.35);
 }
+
+/* Touch optimization */
+canvas {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* iOS momentum scroll */
+.scrollbar-thin {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Prevent pull-to-refresh and overscroll */
+main {
+  overscroll-behavior: none;
+}
+
+/* Minimum touch target size for buttons */
+button {
+  min-height: 44px;
+}
+
+/* Disable text selection on interactive elements */
+[data-touch-drag] {
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}

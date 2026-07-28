@@ -71,8 +71,8 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
       <button
         ref={buttonRef}
         onClick={() => setIsHidden(false)}
-        className="fixed bottom-6 left-6 z-[60] w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/50 hover:text-white/80 hover:bg-white/15 transition-all cursor-pointer"
-        title="顯示設定 (Ctrl + .)"
+        className="fixed bottom-6 left-6 z-[60] w-11 h-11 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/50 hover:text-white/80 hover:bg-white/15 transition-all cursor-pointer"
+        title="顯示設定"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="3" />
@@ -108,7 +108,7 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
                 <button
                   key={t}
                   onClick={() => update('theme', t)}
-                  className={`flex-1 px-2 py-1.5 rounded text-[10px] transition-all cursor-pointer ${
+                  className={`flex-1 px-2 py-2.5 rounded text-[10px] transition-all cursor-pointer min-h-[44px] ${
                     settings.theme === t
                       ? 'bg-white/15 text-white/90 border border-white/20'
                       : 'bg-white/5 text-white/40 border border-transparent hover:bg-white/10'
@@ -128,7 +128,7 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
                 <button
                   key={s}
                   onClick={() => update('fontSize', s)}
-                  className={`flex-1 px-2 py-1.5 rounded text-[10px] transition-all cursor-pointer ${
+                  className={`flex-1 px-2 py-2.5 rounded text-[10px] transition-all cursor-pointer min-h-[44px] ${
                     settings.fontSize === s
                       ? 'bg-white/15 text-white/90 border border-white/20'
                       : 'bg-white/5 text-white/40 border border-transparent hover:bg-white/10'
@@ -148,7 +148,7 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
                 <button
                   key={p}
                   onClick={() => update('panelPosition', p)}
-                  className={`flex-1 px-2 py-1.5 rounded text-[10px] transition-all cursor-pointer ${
+                  className={`flex-1 px-2 py-2.5 rounded text-[10px] transition-all cursor-pointer min-h-[44px] ${
                     settings.panelPosition === p
                       ? 'bg-white/15 text-white/90 border border-white/20'
                       : 'bg-white/5 text-white/40 border border-transparent hover:bg-white/10'
@@ -164,14 +164,14 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
           <div className="px-4 py-3">
             <button
               onClick={() => setIsHidden(true)}
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white/50 text-[10px] hover:bg-white/10 hover:text-white/70 transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white/50 text-[10px] hover:bg-white/10 hover:text-white/70 transition-all cursor-pointer flex items-center justify-center gap-2 min-h-[44px]"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
                 <line x1="1" y1="1" x2="23" y2="23" />
               </svg>
               隱藏設定
-              <span className="text-white/20 ml-1">Ctrl + .</span>
+              <span className="text-white/20 ml-1 hidden sm:inline">Ctrl + .</span>
             </button>
           </div>
         </div>
@@ -181,12 +181,12 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-10 h-10 rounded-full backdrop-blur-md border flex items-center justify-center transition-all cursor-pointer ${
+        className={`w-11 h-11 rounded-full backdrop-blur-md border flex items-center justify-center transition-all cursor-pointer ${
           isOpen
             ? 'bg-white/15 border-white/25 text-white/90'
             : 'bg-white/10 border-white/20 text-white/50 hover:text-white/80 hover:bg-white/15'
         }`}
-        title="設定 (Ctrl + .)"
+        title="設定"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="3" />

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import gsap from 'gsap';
 import { MomentMedia } from '@/types/moment';
 
@@ -107,6 +107,33 @@ function MediaEmbed({ media, color, onImageClick }: { media: MomentMedia; color:
 export default function ContentPanel({ isOpen, onClose, title, subtitle, content, color, date, media, tags, panelPosition = 'right', fontSize = 'medium', onImageClick }: ContentPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef(0);
+  const isDragging = useRef(false);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    dragStartY.current = e.touches[0].clientY;
+    isDragging.current = true;
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging.current || !panelRef.current) return;
+    const deltaY = e.touches[0].clientY - dragStartY.current;
+    if (deltaY > 0) {
+      panelRef.current.style.transform = `translateY(${deltaY}px)`;
+      panelRef.current.style.opacity = `${1 - deltaY / 300}`;
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!isDragging.current || !panelRef.current) return;
+    isDragging.current = false;
+    const deltaY = e.changedTouches[0].clientY - dragStartY.current;
+    if (deltaY > 100) {
+      onClose();
+    } else {
+      gsap.to(panelRef.current, { y: 0, opacity: 1, duration: 0.3, ease: 'power2.out' });
+    }
+  }, [onClose]);
 
   useEffect(() => {
     if (panelRef.current) {
@@ -149,8 +176,15 @@ export default function ContentPanel({ isOpen, onClose, title, subtitle, content
         }}
       >
         {/* Mobile drag handle */}
-        <div className="sm:hidden flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-white/20" />
+        <div
+          className="sm:hidden flex flex-col items-center pt-3 pb-1 cursor-grab active:cursor-grabbing"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          data-touch-drag
+        >
+          <div className="w-10 h-1 rounded-full bg-white/20 mb-1.5" />
+          <span className="text-[9px] text-white/20 tracking-wider">向下滑動關閉</span>
         </div>
         {/* Header with gradient */}
         <div
@@ -214,7 +248,7 @@ export default function ContentPanel({ isOpen, onClose, title, subtitle, content
           </div>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 text-[10px] tracking-[0.15em] uppercase rounded-full transition-all hover:bg-white/5"
+            className="px-5 py-2.5 text-[10px] tracking-[0.15em] uppercase rounded-full transition-all hover:bg-white/5 min-h-[44px]"
             style={{ border: `1px solid ${color}30`, color: `${color}` }}
           >
             Close

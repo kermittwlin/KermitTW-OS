@@ -23,17 +23,25 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavP
       {/* Toggle button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed top-1/2 -translate-y-1/2 z-50 p-2 transition-all duration-300 pointer-events-auto ${
-          isOpen ? 'right-[280px]' : 'right-0'
+        className={`fixed top-1/2 -translate-y-1/2 z-50 p-3 transition-all duration-300 pointer-events-auto min-h-[44px] min-w-[44px] flex items-center justify-center ${
+          isOpen ? 'right-[85vw] max-right-[280px]' : 'right-0'
         } ${isDark ? 'bg-white/5 hover:bg-white/10 text-white/50' : 'bg-black/5 hover:bg-black/10 text-gray-600'}`}
         style={{ borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px' }}
       >
-        {isOpen ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        {isOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
       </button>
+
+      {/* Backdrop overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm sm:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 right-0 h-full w-[280px] z-40 pointer-events-auto transition-transform duration-300 ${
+        className={`fixed top-0 right-0 h-full w-[85vw] max-w-[280px] z-40 pointer-events-auto transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{
@@ -56,7 +64,7 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavP
             <div className="flex flex-wrap gap-1.5">
               <button
                 onClick={() => setActiveCategory(null)}
-                className={`px-2 py-0.5 rounded-full text-[10px] tracking-wider transition-all ${
+                className={`px-2.5 py-1.5 rounded-full text-[10px] tracking-wider transition-all min-h-[32px] ${
                   activeCategory === null
                     ? 'bg-white/15 text-white'
                     : isDark ? 'text-white/30 hover:text-white/50' : 'text-gray-500 hover:text-gray-700'
@@ -68,7 +76,7 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavP
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-                  className={`px-2 py-0.5 rounded-full text-[10px] tracking-wider transition-all ${
+                  className={`px-2.5 py-1.5 rounded-full text-[10px] tracking-wider transition-all min-h-[32px] ${
                     activeCategory === cat
                       ? 'text-white'
                       : isDark ? 'text-white/30 hover:text-white/50' : 'text-gray-500 hover:text-gray-700'

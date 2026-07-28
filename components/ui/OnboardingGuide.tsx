@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import gsap from 'gsap';
 
 export default function OnboardingGuide() {
@@ -9,34 +9,7 @@ export default function OnboardingGuide() {
   const guideRef = React.useRef<HTMLDivElement>(null);
   const arrowRef = React.useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Show guide after 2.5s (after 3D scene fades in)
-    const timer = setTimeout(() => {
-      if (!dismissed) setVisible(true);
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (visible && guideRef.current) {
-      // Fade in
-      gsap.fromTo(guideRef.current,
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }
-      );
-      // Pulsing arrow animation
-      if (arrowRef.current) {
-        gsap.to(arrowRef.current, {
-          y: -8, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: -1
-        });
-      }
-      // Auto-dismiss after 8 seconds
-      const autoHide = setTimeout(() => handleDismiss(), 8000);
-      return () => clearTimeout(autoHide);
-    }
-  }, [visible]);
-
-  const handleDismiss = () => {
+  const handleDismiss = useCallback(() => {
     if (guideRef.current) {
       gsap.to(guideRef.current, {
         opacity: 0, y: -10, duration: 0.5, ease: "power2.in",
@@ -46,18 +19,41 @@ export default function OnboardingGuide() {
         }
       });
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!dismissed) setVisible(true);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [dismissed]);
+
+  useEffect(() => {
+    if (visible && guideRef.current) {
+      gsap.fromTo(guideRef.current,
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.8, ease: "power2.out" }
+      );
+      if (arrowRef.current) {
+        gsap.to(arrowRef.current, {
+          y: -8, duration: 1.2, ease: "sine.inOut", yoyo: true, repeat: -1
+        });
+      }
+      const autoHide = setTimeout(() => handleDismiss(), 8000);
+      return () => clearTimeout(autoHide);
+    }
+  }, [visible, handleDismiss]);
 
   if (!visible || dismissed) return null;
 
   return (
     <div
       ref={guideRef}
-      className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none"
+      className="fixed inset-0 z-40 flex items-center justify-center pointer-events-auto cursor-pointer"
       style={{ opacity: 0 }}
+      onClick={handleDismiss}
     >
-      <div className="relative pointer-events-auto">
-        {/* Main guide card */}
+      <div className="relative pointer-events-auto" onClick={(e) => e.stopPropagation()}>
         <div
           className="px-8 py-6 rounded-2xl backdrop-blur-xl max-w-sm text-center"
           style={{
@@ -66,7 +62,6 @@ export default function OnboardingGuide() {
             boxShadow: '0 0 40px rgba(96, 165, 250, 0.1)',
           }}
         >
-          {/* Animated arrow pointing down-right */}
           <div ref={arrowRef} className="mb-3">
             <svg width="32" height="32" viewBox="0 0 32 32" className="mx-auto">
               <path
@@ -104,12 +99,13 @@ export default function OnboardingGuide() {
           </div>
 
           <p className="text-white/30 text-[10px] mb-3">
-            拖曳旋轉視角 · 滾輪縮放 · 點擊中央回到原點
+            <span className="hidden sm:inline">拖曳旋轉視角 · 滾輪縮放 · 點擊中央回到原點</span>
+            <span className="sm:hidden">拖曳旋轉 · 雙指縮放 · 點擊節點探索</span>
           </p>
 
           <button
             onClick={handleDismiss}
-            className="px-5 py-1.5 text-[10px] tracking-[0.2em] uppercase rounded-full transition-all hover:bg-white/10"
+            className="px-5 py-2.5 text-[10px] tracking-[0.2em] uppercase rounded-full transition-all hover:bg-white/10 min-h-[44px]"
             style={{ border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.5)' }}
           >
             開始探索

@@ -11,6 +11,7 @@ import NodeNav from '@/components/ui/NodeNav';
 import Lightbox from '@/components/ui/Lightbox';
 import LoadingScreen from '@/components/ui/LoadingScreen';
 import { getMomentById } from '@/data/moments';
+import { useIsTouchDevice } from '@/hooks/useIsTouchDevice';
 
 export default function Page() {
   const [mounted, setMounted] = useState(false);
@@ -26,6 +27,7 @@ export default function Page() {
   });
   const [lightbox, setLightbox] = useState<{ src: string; alt?: string } | null>(null);
   const flyToRef = useRef<((pos: [number, number, number], id: string) => void) | null>(null);
+  const isTouchDevice = useIsTouchDevice();
 
   useEffect(() => {
     setMounted(true);
@@ -121,6 +123,7 @@ export default function Page() {
             onLocationChange={setLocation}
             onNodeClick={handleNodeClick}
             onRegisterFlyTo={registerFlyTo}
+            isTouchDevice={isTouchDevice}
           />
         </Suspense>
       </Canvas>
