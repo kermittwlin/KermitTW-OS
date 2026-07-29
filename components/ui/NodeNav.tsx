@@ -20,13 +20,15 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavP
 
   return (
     <>
-      {/* Toggle button */}
+      {/* Toggle button — always visible on right edge */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed top-1/2 -translate-y-1/2 z-50 p-3 transition-all duration-300 pointer-events-auto min-h-[44px] min-w-[44px] flex items-center justify-center ${
-          isOpen ? 'right-[85vw] max-right-[280px]' : 'right-0'
-        } ${isDark ? 'bg-white/5 hover:bg-white/10 text-white/50' : 'bg-black/5 hover:bg-black/10 text-gray-600'}`}
-        style={{ borderTopLeftRadius: '8px', borderBottomLeftRadius: '8px' }}
+        className={`fixed top-1/2 -translate-y-1/2 z-50 p-3 transition-all duration-300 pointer-events-auto min-h-[44px] min-w-[44px] flex items-center justify-center rounded-l-lg ${
+          isDark
+            ? 'bg-white/15 hover:bg-white/25 text-white/80 border border-white/20'
+            : 'bg-black/15 hover:bg-black/25 text-gray-700 border border-black/20'
+        }`}
+        style={{ right: isOpen ? 'calc(85vw)' : 0, maxWidth: isOpen ? 'calc(100% - 280px)' : undefined }}
       >
         {isOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
       </button>
@@ -34,7 +36,7 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavP
       {/* Backdrop overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm sm:hidden"
+          className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
         />
       )}
