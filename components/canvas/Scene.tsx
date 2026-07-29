@@ -734,7 +734,7 @@ const BottomLabels = () => {
             <sphereGeometry args={[0.14, 12, 12]} />
             <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.05 * theme.scale)} />
           </mesh>
-          <Text fontSize={0.18} color={theme.text} position={[0, 0, 0.01]} anchorX="center" anchorY="middle" fillOpacity={Math.min(1, 0.9 * theme.scale)}>
+          <Text fontSize={0.18} color={theme.text} position={[0, 0, 0.5]} anchorX="center" anchorY="middle" fillOpacity={Math.min(1, 0.9 * theme.scale)}>
             {letter}
           </Text>
         </group>
