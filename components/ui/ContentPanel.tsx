@@ -164,7 +164,7 @@ export default function ContentPanel({ isOpen, onClose, title, subtitle, content
   const isLeft = panelPosition === 'left';
 
   return (
-    <div className={`fixed inset-0 z-40 flex items-end p-3 sm:p-6 pointer-events-none ${isLeft ? 'justify-start sm:justify-start' : 'justify-end sm:justify-end'}`}>
+    <div className={`fixed inset-0 z-40 flex items-start p-3 sm:p-6 pointer-events-none ${isLeft ? 'justify-start sm:justify-start' : 'justify-end sm:justify-end'}`}>
       <div
         ref={panelRef}
         className="w-full sm:max-w-md max-h-[70vh] sm:max-h-[80vh] pointer-events-auto rounded-t-2xl sm:rounded-2xl overflow-y-auto scrollbar-thin"
