@@ -245,7 +245,7 @@ export default function ContentPanel({ isOpen, onClose, title, subtitle, content
         {/* Footer */}
         <div className="px-6 pb-5 pt-2 flex justify-between items-center">
           <div className={`text-[9px] tracking-wider uppercase ${isDark ? 'text-white/20' : 'text-gray-400'}`}>
-            KERMIT OS · {title}
+            KermitTW · {title}
           </div>
           <button
             onClick={onClose}

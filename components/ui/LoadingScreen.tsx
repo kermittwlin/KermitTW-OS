@@ -64,7 +64,7 @@ export default function LoadingScreen({ onComplete }: LoadingScreenProps) {
 
       {/* Title */}
       <h1 className="text-white/80 text-lg tracking-[0.3em] font-light mb-2">
-        KERMIT<span className="text-xs align-top ml-1 text-white/40">OS</span>
+        <span className="font-light">Kermit</span><span className="font-bold">TW</span>
       </h1>
       <p className="text-white/20 text-[10px] tracking-[0.2em] uppercase mb-8">
         Digital Identity Universe

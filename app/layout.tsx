@@ -13,11 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "KERMIT-OS | Digital Identity OS",
+    title: "KermitTW | Digital Identity OS",
   description:
     "A 3D immersive personal exhibition website — DJ performances, music compositions, event curation, and business projects visualized as an interactive constellation.",
   openGraph: {
-    title: "KERMIT-OS | Digital Identity OS",
+  title: "KermitTW | Digital Identity OS",
     description:
       "A 3D immersive personal exhibition website — DJ performances, music compositions, event curation, and business projects.",
     type: "website",

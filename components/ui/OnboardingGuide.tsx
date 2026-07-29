@@ -73,7 +73,7 @@ export default function OnboardingGuide() {
           </div>
 
           <h3 className="text-white text-sm font-medium tracking-wider mb-2">
-            WELCOME TO KERMIT OS
+            WELCOME TO KermitTW
           </h3>
           <p className="text-white/50 text-xs leading-relaxed mb-4">
             這是 Kermit 的知識宇宙。每個節點代表一個探索領域。
