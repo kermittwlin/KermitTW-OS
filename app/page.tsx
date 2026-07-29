@@ -74,8 +74,10 @@ export default function Page() {
       <div className={`absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 sm:p-8 transition-opacity duration-1000 ${uiVisible ? 'opacity-100' : 'opacity-0'}`}>
         <div className="flex justify-between items-start">
           <div className={isDark ? 'text-white' : 'text-gray-800'}>
-            <h1 className="text-xl sm:text-2xl font-light tracking-widest opacity-80">KERMIT <span className="text-xs align-top">OS</span></h1>
-            <p className="text-[10px] uppercase tracking-tighter opacity-40">Living Knowledge System v0.9</p>
+            <h1 className="text-xl sm:text-2xl tracking-widest opacity-80">
+              <span className="font-light">Kermit</span><span className="font-bold">TW</span>
+            </h1>
+            <p className="text-[10px] uppercase tracking-tighter opacity-40">Digital Identity OS</p>
           </div>
           <div className={`text-right opacity-40 text-[10px] font-mono ${isDark ? 'text-white' : 'text-gray-800'}`}>
             STATUS: SYSTEM_STABLE<br/>
