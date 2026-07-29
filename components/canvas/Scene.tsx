@@ -2,7 +2,7 @@
 
 import React, { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Float, Text } from '@react-three/drei';
+import { Float, Text, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { MomentData } from '@/types/moment';
@@ -1197,41 +1197,43 @@ const MomentNode = ({ moment, onClick, isTouchDevice = false }: { moment: Moment
             </mesh>
           </group>
         ))}
-        {/* Label */}
-        <Text
-          position={[0, -0.7, 0]}
-          fontSize={0.12}
-          color="white"
-          fillOpacity={hovered ? 1 : (hasContent ? 0.85 : 0.35)}
-          anchorX="center"
-          fontWeight="bold"
-        >
-          {moment.title}
-        </Text>
-        {/* Sub-label */}
-        <Text
-          position={[0, -0.86, 0]}
-          fontSize={0.06}
-          color={color}
-          fillOpacity={hovered ? 0.95 : (hasContent ? 0.55 : 0.15)}
-          anchorX="center"
-        >
-          {hasContent ? (hovered ? 'CLICK TO EXPLORE' : moment.subtitle || moment.category.toUpperCase()) : 'COMING SOON'}
-        </Text>
-        {/* Tooltip on hover — shows description */}
-        {hovered && hasContent && (
-          <group position={[0, 0.9, 0]}>
-            <Text
-              fontSize={0.05}
-              color="white"
-              fillOpacity={0.9}
-              anchorX="center"
-              maxWidth={3}
-            >
-              {moment.description.length > 60 ? moment.description.slice(0, 60) + '...' : moment.description}
-            </Text>
-          </group>
-        )}
+        {/* Label — always faces camera */}
+        <Billboard follow={true} lockX={false} lockY={false} lockZ={false}>
+          <Text
+            position={[0, -0.7, 0]}
+            fontSize={0.12}
+            color="white"
+            fillOpacity={hovered ? 1 : (hasContent ? 0.85 : 0.35)}
+            anchorX="center"
+            fontWeight="bold"
+          >
+            {moment.title}
+          </Text>
+          {/* Sub-label */}
+          <Text
+            position={[0, -0.86, 0]}
+            fontSize={0.06}
+            color={color}
+            fillOpacity={hovered ? 0.95 : (hasContent ? 0.55 : 0.15)}
+            anchorX="center"
+          >
+            {hasContent ? (hovered ? 'CLICK TO EXPLORE' : moment.subtitle || moment.category.toUpperCase()) : 'COMING SOON'}
+          </Text>
+          {/* Tooltip on hover — shows description */}
+          {hovered && hasContent && (
+            <group position={[0, 0.9, 0]}>
+              <Text
+                fontSize={0.05}
+                color="white"
+                fillOpacity={0.9}
+                anchorX="center"
+                maxWidth={3}
+              >
+                {moment.description.length > 60 ? moment.description.slice(0, 60) + '...' : moment.description}
+              </Text>
+            </group>
+          )}
+        </Billboard>
       </group>
     </group>
   );
