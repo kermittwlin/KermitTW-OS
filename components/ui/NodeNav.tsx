@@ -9,9 +9,10 @@ interface NodeNavProps {
   onNodeSelect: (nodeId: string) => void;
   activeNodeId?: string | null;
   isDark: boolean;
+  panelOpen?: boolean;
 }
 
-export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavProps) {
+export default function NodeNav({ onNodeSelect, activeNodeId, isDark, panelOpen = false }: NodeNavProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState<MomentCategory | null>(null);
 
@@ -23,7 +24,7 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavP
       {/* Toggle button — always on right edge, moves with sidebar */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed top-1/2 -translate-y-1/2 z-50 p-3 transition-all duration-300 pointer-events-auto min-h-[44px] min-w-[44px] flex items-center justify-center rounded-l-lg ${
+        className={`fixed top-1/2 -translate-y-1/2 p-3 transition-all duration-300 pointer-events-auto min-h-[44px] min-w-[44px] flex items-center justify-center rounded-l-lg ${panelOpen ? 'z-30' : 'z-50'} ${
           isDark
             ? 'bg-blue-500/30 hover:bg-blue-500/50 text-white border border-blue-400/40 shadow-lg shadow-blue-500/20'
             : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-800 border border-blue-500/30 shadow-lg shadow-blue-600/15'
@@ -68,7 +69,7 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavP
                 onClick={() => setActiveCategory(null)}
                 className={`px-2.5 py-1.5 rounded-full text-[10px] tracking-wider transition-all min-h-[32px] ${
                   activeCategory === null
-                    ? 'bg-white/15 text-white'
+                    ? isDark ? 'bg-white/15 text-white' : 'bg-blue-100 text-blue-800'
                     : isDark ? 'text-white/30 hover:text-white/50' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
@@ -80,7 +81,7 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavP
                   onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
                   className={`px-2.5 py-1.5 rounded-full text-[10px] tracking-wider transition-all min-h-[32px] ${
                     activeCategory === cat
-                      ? 'text-white'
+                      ? isDark ? 'text-white' : 'text-gray-800'
                       : isDark ? 'text-white/30 hover:text-white/50' : 'text-gray-500 hover:text-gray-700'
                   }`}
                   style={activeCategory === cat ? { backgroundColor: `${CATEGORIES[cat].color}40` } : {}}
@@ -101,7 +102,7 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavP
                   key={moment.id}
                   onClick={() => { onNodeSelect(moment.id); }}
                   className={`w-full text-left p-3 rounded-lg transition-all ${
-                    isActive ? 'ring-1' : 'hover:bg-white/5'
+                    isActive ? 'ring-1' : isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'
                   }`}
                   style={isActive ? {
                     backgroundColor: `${moment.color}12`,
@@ -118,17 +119,17 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavP
                       }}
                     />
                     <div className="min-w-0 flex-1">
-                      <div className={`text-xs font-medium truncate ${isDark ? 'text-white/80' : 'text-gray-700'}`}>
+                      <div className={`text-sm font-medium truncate ${isDark ? 'text-white/80' : 'text-gray-700'}`}>
                         {moment.title}
                       </div>
                       {moment.subtitle && (
-                        <div className={`text-[10px] truncate mt-0.5 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
+                        <div className={`text-xs truncate mt-0.5 ${isDark ? 'text-white/30' : 'text-gray-400'}`}>
                           {moment.subtitle}
                         </div>
                       )}
                     </div>
                     <span
-                      className="text-[9px] px-1.5 py-0.5 rounded-full flex-shrink-0"
+                      className="text-[11px] px-1.5 py-0.5 rounded-full flex-shrink-0"
                       style={{
                         backgroundColor: `${CATEGORIES[moment.category].color}15`,
                         color: CATEGORIES[moment.category].color,
@@ -144,7 +145,7 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavP
 
           {/* Footer */}
           <div className="p-3 border-t" style={{ borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
-            <div className={`text-[9px] tracking-wider text-center ${isDark ? 'text-white/20' : 'text-gray-400'}`}>
+            <div className={`text-[10px] tracking-wider text-center ${isDark ? 'text-white/20' : 'text-gray-400'}`}>
               {moments.filter(m => m.media || m.id === 'ABOUT_ME').length} / {moments.length} MOMENTS EXPLORED
             </div>
           </div>

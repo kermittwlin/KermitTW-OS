@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useRef, useMemo, useState, useCallback, useEffect, createContext, useContext } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { Float, Text, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
@@ -9,8 +9,41 @@ import { MomentData } from '@/types/moment';
 import { moments as momentList } from '@/data/moments';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 
+/* ── Theme Colors ── */
+const darkTheme = {
+  line: '#ffffff',
+  lineFaint: 'rgba(255,255,255,0.08)',
+  lineMed: 'rgba(255,255,255,0.2)',
+  text: '#ffffff',
+  glow: '#ffffff',
+  nebula: '#3b82f6',
+  star: '#ffffff',
+  scale: 1 as number,
+};
+const lightTheme = {
+  line: '#111827',
+  lineFaint: 'rgba(17,24,39,0.25)',
+  lineMed: 'rgba(17,24,39,0.5)',
+  text: '#111827',
+  glow: '#1e293b',
+  nebula: '#2563eb',
+  star: '#374151',
+  scale: 2.0 as number,
+};
+
+type ThemeColors = typeof darkTheme;
+const ThemeContext = createContext<ThemeColors>(darkTheme);
+const useTheme = () => useContext(ThemeContext);
+
+/* ── Opacity helpers ── */
+const opacityScale = (v: number, theme: ThemeColors) => Math.min(1, v * theme.scale);
+const opacityFloor = (v: number, theme: ThemeColors) => theme.scale === 1 ? v : Math.max(0.12, v * theme.scale);
+
+/* ── 3D font boost for light mode ── */
+const LIGHT_FONT_BOOST = 1.25;
+
 /* ── Glow Texture (radial gradient for fake bloom) ── */
-const createGlowTexture = (): THREE.Texture => {
+const createGlowTexture = (dark = true): THREE.Texture => {
   const size = 512;
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -18,12 +51,21 @@ const createGlowTexture = (): THREE.Texture => {
   const ctx = canvas.getContext('2d')!;
   const center = size / 2;
   const gradient = ctx.createRadialGradient(center, center, 0, center, center, center);
-  gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-  gradient.addColorStop(0.08, 'rgba(255, 255, 255, 0.7)');
-  gradient.addColorStop(0.2, 'rgba(220, 235, 255, 0.35)');
-  gradient.addColorStop(0.45, 'rgba(180, 210, 255, 0.12)');
-  gradient.addColorStop(0.7, 'rgba(140, 180, 255, 0.04)');
-  gradient.addColorStop(1, 'rgba(100, 140, 255, 0)');
+  if (dark) {
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    gradient.addColorStop(0.08, 'rgba(255, 255, 255, 0.7)');
+    gradient.addColorStop(0.2, 'rgba(220, 235, 255, 0.35)');
+    gradient.addColorStop(0.45, 'rgba(180, 210, 255, 0.12)');
+    gradient.addColorStop(0.7, 'rgba(140, 180, 255, 0.04)');
+    gradient.addColorStop(1, 'rgba(100, 140, 255, 0)');
+  } else {
+    gradient.addColorStop(0, 'rgba(15, 23, 42, 0.9)');
+    gradient.addColorStop(0.08, 'rgba(15, 23, 42, 0.6)');
+    gradient.addColorStop(0.2, 'rgba(30, 41, 59, 0.3)');
+    gradient.addColorStop(0.45, 'rgba(51, 65, 85, 0.1)');
+    gradient.addColorStop(0.7, 'rgba(71, 85, 105, 0.03)');
+    gradient.addColorStop(1, 'rgba(100, 116, 139, 0)');
+  }
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, size, size);
   const tex = new THREE.CanvasTexture(canvas);
@@ -32,7 +74,7 @@ const createGlowTexture = (): THREE.Texture => {
 };
 
 /* ── Soft Glow Texture (extra diffuse for large halos) ── */
-const createSoftGlowTexture = (): THREE.Texture => {
+const createSoftGlowTexture = (dark = true): THREE.Texture => {
   const size = 512;
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -40,11 +82,19 @@ const createSoftGlowTexture = (): THREE.Texture => {
   const ctx = canvas.getContext('2d')!;
   const center = size / 2;
   const gradient = ctx.createRadialGradient(center, center, 0, center, center, center);
-  gradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
-  gradient.addColorStop(0.15, 'rgba(220, 235, 255, 0.2)');
-  gradient.addColorStop(0.4, 'rgba(180, 210, 255, 0.06)');
-  gradient.addColorStop(0.7, 'rgba(140, 180, 255, 0.02)');
-  gradient.addColorStop(1, 'rgba(100, 140, 255, 0)');
+  if (dark) {
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
+    gradient.addColorStop(0.15, 'rgba(220, 235, 255, 0.2)');
+    gradient.addColorStop(0.4, 'rgba(180, 210, 255, 0.06)');
+    gradient.addColorStop(0.7, 'rgba(140, 180, 255, 0.02)');
+    gradient.addColorStop(1, 'rgba(100, 140, 255, 0)');
+  } else {
+    gradient.addColorStop(0, 'rgba(15, 23, 42, 0.45)');
+    gradient.addColorStop(0.15, 'rgba(30, 41, 59, 0.18)');
+    gradient.addColorStop(0.4, 'rgba(51, 65, 85, 0.06)');
+    gradient.addColorStop(0.7, 'rgba(71, 85, 105, 0.02)');
+    gradient.addColorStop(1, 'rgba(100, 116, 139, 0)');
+  }
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, size, size);
   const tex = new THREE.CanvasTexture(canvas);
@@ -53,12 +103,22 @@ const createSoftGlowTexture = (): THREE.Texture => {
 };
 
 const glowTexture = (() => {
-  if (typeof document !== 'undefined') return createGlowTexture();
+  if (typeof document !== 'undefined') return createGlowTexture(true);
+  return null;
+})();
+
+const glowTextureLight = (() => {
+  if (typeof document !== 'undefined') return createGlowTexture(false);
   return null;
 })();
 
 const softGlowTexture = (() => {
-  if (typeof document !== 'undefined') return createSoftGlowTexture();
+  if (typeof document !== 'undefined') return createSoftGlowTexture(true);
+  return null;
+})();
+
+const softGlowTextureLight = (() => {
+  if (typeof document !== 'undefined') return createSoftGlowTexture(false);
   return null;
 })();
 
@@ -66,16 +126,28 @@ const softGlowTexture = (() => {
 const GlowSprite = ({ position, size = 0.3, opacity = 0.3, soft = false }: {
   position: [number, number, number]; size?: number; opacity?: number; soft?: boolean;
 }) => {
-  const tex = useMemo(() => soft ? (softGlowTexture ?? createSoftGlowTexture()) : (glowTexture ?? createGlowTexture()), [soft]);
+  const theme = useTheme();
+  const isDark = theme.scale === 1;
+  const tex = useMemo(() => {
+    if (soft) {
+      return isDark
+        ? (softGlowTexture ?? createSoftGlowTexture(true))
+        : (softGlowTextureLight ?? createSoftGlowTexture(false));
+    }
+    return isDark
+      ? (glowTexture ?? createGlowTexture(true))
+      : (glowTextureLight ?? createGlowTexture(false));
+  }, [soft, isDark]);
   return (
     <sprite position={position} scale={[size, size, 1]}>
-      <spriteMaterial map={tex} transparent opacity={opacity} depthWrite={false} />
+      <spriteMaterial map={tex} transparent opacity={Math.min(1, opacity * theme.scale)} depthWrite={false} />
     </sprite>
   );
 };
 
 /* ── Star Field ── */
 const StarField = () => {
+  const theme = useTheme();
   const layers = useMemo(() => [
     { count: 2000, spread: 60, size: 0.025, opacity: 0.35 },
     { count: 1200, spread: 100, size: 0.012, opacity: 0.18 },
@@ -94,7 +166,7 @@ const StarField = () => {
             <bufferGeometry>
               <bufferAttribute attach="attributes-position" args={[positions, 3]} />
             </bufferGeometry>
-            <pointsMaterial size={layer.size} color="#ffffff" transparent opacity={layer.opacity} />
+            <pointsMaterial size={layer.size} color={theme.star} transparent opacity={Math.min(1, layer.opacity * theme.scale)} />
           </points>
         );
       })}
@@ -104,6 +176,7 @@ const StarField = () => {
 
 /* ── Nebula (soft circular glow patches, fixed in background) ── */
 const NebulaStreaks = () => {
+  const theme = useTheme();
   const tex = useMemo(() => glowTexture ?? createGlowTexture(), []);
   const patches = useMemo(() => [
     // Left cluster
@@ -123,7 +196,7 @@ const NebulaStreaks = () => {
     <group>
       {patches.map((p, i) => (
         <sprite key={i} position={[p.x, p.y, p.z]} scale={[p.size, p.size, 1]}>
-          <spriteMaterial map={tex} transparent opacity={p.opacity} color={p.color} depthWrite={false} />
+          <spriteMaterial map={tex} transparent opacity={Math.min(1, p.opacity * theme.scale)} color={p.color} depthWrite={false} />
         </sprite>
       ))}
     </group>
@@ -131,9 +204,12 @@ const NebulaStreaks = () => {
 };
 
 /* ── Crisp Ring (sharp line, optional glow halo) ── */
-const CrispRing = ({ radius, color = "#ffffff", opacity = 0.5, segments = 180, glowRadius = 0 }: {
+const CrispRing = ({ radius, color, opacity = 0.5, segments = 180, glowRadius = 0 }: {
   radius: number; color?: string; opacity?: number; segments?: number; glowRadius?: number;
 }) => {
+  const theme = useTheme();
+  const ringColor = color ?? theme.line;
+  const ringOpacity = Math.min(1, opacity * theme.scale);
   const line = useMemo(() => {
     const points: THREE.Vector3[] = [];
     for (let i = 0; i <= segments; i++) {
@@ -141,16 +217,16 @@ const CrispRing = ({ radius, color = "#ffffff", opacity = 0.5, segments = 180, g
       points.push(new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius, 0));
     }
     const geom = new THREE.BufferGeometry().setFromPoints(points);
-    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    const mat = new THREE.LineBasicMaterial({ color: ringColor, transparent: true, opacity: ringOpacity });
     return new THREE.Line(geom, mat);
-  }, [radius, color, opacity, segments]);
+  }, [radius, ringColor, ringOpacity, segments]);
   return (
     <group rotation={[Math.PI / 2, 0, 0]}>
       <primitive object={line} />
       {glowRadius > 0 && (
         <mesh>
           <torusGeometry args={[radius, glowRadius, 16, segments]} />
-          <meshBasicMaterial color={color} transparent opacity={opacity * 0.08} />
+          <meshBasicMaterial color={ringColor} transparent opacity={ringOpacity * 0.08} />
         </mesh>
       )}
     </group>
@@ -158,9 +234,12 @@ const CrispRing = ({ radius, color = "#ffffff", opacity = 0.5, segments = 180, g
 };
 
 /* ── Tick Ring (compass-like marks) ── */
-const TickRing = ({ radius, majorTicks, minorPerMajor, color = "#ffffff", opacity = 0.35, tickLength }: {
+const TickRing = ({ radius, majorTicks, minorPerMajor, color, opacity = 0.35, tickLength }: {
   radius: number; majorTicks: number; minorPerMajor: number; color?: string; opacity?: number; tickLength?: number;
 }) => {
+  const theme = useTheme();
+  const tickColor = color ?? theme.line;
+  const tickOpacity = Math.min(1, opacity * theme.scale);
   const ticks = useMemo(() => {
     const result: { x: number; y: number; len: number; thick: number; rot: number }[] = [];
     const total = majorTicks * minorPerMajor;
@@ -182,7 +261,7 @@ const TickRing = ({ radius, majorTicks, minorPerMajor, color = "#ffffff", opacit
       {ticks.map((t, i) => (
         <mesh key={i} position={[t.x, t.y, 0]} rotation={[0, 0, t.rot]}>
           <boxGeometry args={[t.thick, t.len, 0.001]} />
-          <meshBasicMaterial color={color} transparent opacity={opacity} />
+          <meshBasicMaterial color={tickColor} transparent opacity={tickOpacity} />
         </mesh>
       ))}
     </group>
@@ -191,6 +270,7 @@ const TickRing = ({ radius, majorTicks, minorPerMajor, color = "#ffffff", opacit
 
 /* ── Dot Pulse ── */
 const DotPulse = ({ x, y, size, opacity, speed }: { x: number; y: number; size: number; opacity: number; speed: number }) => {
+  const theme = useTheme();
   const ref = useRef<THREE.Group>(null!);
   useFrame((state) => {
     if (ref.current) {
@@ -205,8 +285,8 @@ const DotPulse = ({ x, y, size, opacity, speed }: { x: number; y: number; size: 
   });
   return (
     <group ref={ref}>
-      <mesh position={[x, y, 0]}><sphereGeometry args={[size * 2.5, 8, 8]} /><meshBasicMaterial color="#ffffff" transparent opacity={opacity * 0.1} /></mesh>
-      <mesh position={[x, y, 0]}><sphereGeometry args={[size, 8, 8]} /><meshBasicMaterial color="#ffffff" transparent opacity={opacity} /></mesh>
+      <mesh position={[x, y, 0]}><sphereGeometry args={[size * 2.5, 8, 8]} /><meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, opacity * 0.1 * theme.scale)} /></mesh>
+      <mesh position={[x, y, 0]}><sphereGeometry args={[size, 8, 8]} /><meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, opacity * theme.scale)} /></mesh>
     </group>
   );
 };
@@ -214,6 +294,7 @@ const DotPulse = ({ x, y, size, opacity, speed }: { x: number; y: number; size: 
 /* ── Intersection Dots ── */
 /* ── Connecting Chords ── */
 const ConnectingChords = () => {
+  const theme = useTheme();
   const lines = useMemo(() => {
     const result: THREE.Line[] = [];
     const axes = 12;
@@ -226,12 +307,12 @@ const ConnectingChords = () => {
           new THREE.Vector3(Math.cos(a1) * r, Math.sin(a1) * r, 0),
           new THREE.Vector3(Math.cos(a2) * r, Math.sin(a2) * r, 0),
         ]);
-        const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.18 });
+      const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.18 * theme.scale) });
         result.push(new THREE.Line(geom, mat));
       }
     }
     return result;
-  }, []);
+  }, [theme.line]);
   return (
     <group rotation={[Math.PI / 2, 0, 0]}>
       {lines.map((l, i) => <primitive key={i} object={l} />)}
@@ -241,6 +322,7 @@ const ConnectingChords = () => {
 
 /* ── Triangle Grid (sacred geometry) ── */
 const TriangleGrid = () => {
+  const theme = useTheme();
   const lines = useMemo(() => {
     const result: THREE.Line[] = [];
     const axes = 12;
@@ -257,7 +339,7 @@ const TriangleGrid = () => {
           new THREE.Vector3(Math.cos(a2) * r2, Math.sin(a2) * r2, 0),
           new THREE.Vector3(Math.cos(a1) * r1, Math.sin(a1) * r1, 0),
         ]);
-        const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.1 });
+        const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.1 * theme.scale) });
         result.push(new THREE.Line(geom, mat));
         const geom2 = new THREE.BufferGeometry().setFromPoints([
           new THREE.Vector3(Math.cos(a1) * r1, Math.sin(a1) * r1, 0),
@@ -265,12 +347,12 @@ const TriangleGrid = () => {
           new THREE.Vector3(Math.cos(a2) * r1, Math.sin(a2) * r1, 0),
           new THREE.Vector3(Math.cos(a1) * r1, Math.sin(a1) * r1, 0),
         ]);
-        const mat2 = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.1 });
+        const mat2 = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.1 * theme.scale) });
         result.push(new THREE.Line(geom2, mat2));
       }
     }
     return result;
-  }, []);
+  }, [theme.line]);
   return (
     <group rotation={[Math.PI / 2, 0, 0]}>
       {lines.map((l, i) => <primitive key={i} object={l} />)}
@@ -280,55 +362,59 @@ const TriangleGrid = () => {
 
 /* ── Diamond Frame ── */
 const DiamondFrame = ({ size, opacity = 0.25 }: { size: number; opacity?: number }) => {
+  const theme = useTheme();
   const line = useMemo(() => {
     const geom = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0, size, 0), new THREE.Vector3(size, 0, 0),
       new THREE.Vector3(0, -size, 0), new THREE.Vector3(-size, 0, 0),
       new THREE.Vector3(0, size, 0),
     ]);
-    const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity });
+    const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, opacity * theme.scale) });
     return new THREE.Line(geom, mat);
-  }, [size, opacity]);
+  }, [size, opacity, theme.line]);
   return <group rotation={[Math.PI / 2, 0, 0]}><primitive object={line} /></group>;
 };
 
 /* ── Square Frame ── */
 const SquareFrame = ({ size, opacity = 0.15 }: { size: number; opacity?: number }) => {
+  const theme = useTheme();
   const line = useMemo(() => {
     const geom = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(-size, -size, 0), new THREE.Vector3(size, -size, 0),
       new THREE.Vector3(size, size, 0), new THREE.Vector3(-size, size, 0),
       new THREE.Vector3(-size, -size, 0),
     ]);
-    const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity });
+    const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, opacity * theme.scale) });
     return new THREE.Line(geom, mat);
-  }, [size, opacity]);
+  }, [size, opacity, theme.line]);
   return <group rotation={[Math.PI / 2, 0, 0]}><primitive object={line} /></group>;
 };
 
 /* ── Triangle Frame ── */
 const TriangleFrame = ({ radius, rotation: rot, opacity = 0.18 }: { radius: number; rotation: number; opacity?: number }) => {
+  const theme = useTheme();
   const line = useMemo(() => {
     const geom = new THREE.BufferGeometry().setFromPoints(Array.from({ length: 4 }, (_, i) => {
       const a = rot + (i * Math.PI * 2) / 3;
       return new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius, 0);
     }));
-    const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity });
+    const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, opacity * theme.scale) });
     return new THREE.Line(geom, mat);
-  }, [radius, rot, opacity]);
+  }, [radius, rot, opacity, theme.line]);
   return <group rotation={[Math.PI / 2, 0, 0]}><primitive object={line} /></group>;
 };
 
 /* ── Main Axis (prominent, with endpoint dot+circle) ── */
 const MainAxis = ({ angle, length }: { angle: number; length: number }) => {
+  const theme = useTheme();
   const line = useMemo(() => {
     const geom = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(0, 0, 0),
       new THREE.Vector3(0, 0, -length),
     ]);
-    const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.8 });
+    const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.8 * theme.scale) });
     return new THREE.Line(geom, mat);
-  }, [length]);
+  }, [length, theme.line]);
   const circle = useMemo(() => {
     const points: THREE.Vector3[] = [];
     const r = 0.25;
@@ -337,9 +423,9 @@ const MainAxis = ({ angle, length }: { angle: number; length: number }) => {
       points.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, -length));
     }
     const geom = new THREE.BufferGeometry().setFromPoints(points);
-    const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.85 });
+    const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.85 * theme.scale) });
     return new THREE.Line(geom, mat);
-  }, [length]);
+  }, [length, theme.line]);
   const innerCircle = useMemo(() => {
     const points: THREE.Vector3[] = [];
     const r = 0.14;
@@ -348,9 +434,9 @@ const MainAxis = ({ angle, length }: { angle: number; length: number }) => {
       points.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, -length));
     }
     const geom = new THREE.BufferGeometry().setFromPoints(points);
-    const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.6 });
+    const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.6 * theme.scale) });
     return new THREE.Line(geom, mat);
-  }, [length]);
+  }, [length, theme.line]);
   return (
     <group rotation={[0, 0, angle]}>
       <primitive object={line} />
@@ -361,17 +447,17 @@ const MainAxis = ({ angle, length }: { angle: number; length: number }) => {
       {/* Outer glow sphere */}
       <mesh position={[0, 0, -length]}>
         <sphereGeometry args={[0.28, 16, 16]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.1} />
+        <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.1 * theme.scale)} />
       </mesh>
       {/* Core dot */}
       <mesh position={[0, 0, -length]}>
         <sphereGeometry args={[0.08, 12, 12]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={1} />
+        <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 1 * theme.scale)} />
       </mesh>
       {/* Mid-axis ring marker */}
       <mesh position={[0, 0, -length * 0.5]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.1, 0.003, 16, 32]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.5} />
+        <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.5 * theme.scale)} />
       </mesh>
     </group>
   );
@@ -379,6 +465,7 @@ const MainAxis = ({ angle, length }: { angle: number; length: number }) => {
 
 /* ── Mouse Trail ── */
 const MouseTrail = () => {
+  const theme = useTheme();
   const trailCount = 8;
   const refs = useRef<THREE.Mesh[]>([]);
   const positions = useRef<THREE.Vector3[]>(Array.from({ length: trailCount }, () => new THREE.Vector3(0, 0, 5)));
@@ -400,7 +487,7 @@ const MouseTrail = () => {
     refs.current.forEach((mesh, i) => {
       if (mesh) {
         mesh.position.copy(positions.current[i]);
-        const opacity = (1 - i / trailCount) * 0.35;
+        const opacity = Math.min(1, (1 - i / trailCount) * 0.35 * theme.scale);
         const scale = (1 - i / trailCount) * 0.5;
         mesh.scale.setScalar(scale);
         if (mesh.material) (mesh.material as THREE.MeshBasicMaterial).opacity = opacity;
@@ -412,7 +499,7 @@ const MouseTrail = () => {
       {Array.from({ length: trailCount }).map((_, i) => (
         <mesh key={i} ref={(el) => { if (el) refs.current[i] = el; }} position={[0, 0, 5]}>
           <sphereGeometry args={[0.012, 6, 6]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.3} />
+          <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.3 * theme.scale)} />
         </mesh>
       ))}
     </group>
@@ -421,6 +508,7 @@ const MouseTrail = () => {
 
 /* ── Fade In Overlay ── */
 const FadeInOverlay = () => {
+  const theme = useTheme();
   const ref = useRef<THREE.Mesh>(null!);
   const done = useRef(false);
   useFrame(() => {
@@ -430,11 +518,12 @@ const FadeInOverlay = () => {
     if (t < 2) mat.opacity = Math.max(0, 1 - t / 2);
     else { mat.opacity = 0; done.current = true; }
   });
-  return <mesh ref={ref} position={[0, 0, 8]}><planeGeometry args={[50, 50]} /><meshBasicMaterial color="#020617" transparent opacity={1} /></mesh>;
+  return <mesh ref={ref} position={[0, 0, 8]}><planeGeometry args={[50, 50]} /><meshBasicMaterial color={theme.glow} transparent opacity={1} /></mesh>;
 };
 
 /* ── K Letter (geometric technical style matching reference) ── */
 const KermitLetter = () => {
+  const theme = useTheme();
   const groupRef = useRef<THREE.Group>(null!);
 
   useFrame((state) => {
@@ -450,7 +539,7 @@ const KermitLetter = () => {
 
     const addLine = (pts: THREE.Vector3[], opacity: number) => {
       const geom = new THREE.BufferGeometry().setFromPoints(pts);
-      const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity });
+      const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity });
       const line = new THREE.Line(geom, mat);
       line.frustumCulled = false;
       result.push(line);
@@ -489,7 +578,7 @@ const KermitLetter = () => {
     addLine([new THREE.Vector3(stemX - s, mid - s, 0), new THREE.Vector3(ur + s, bot - s, 0)], 0.12);
 
     return result;
-  }, []);
+  }, [theme.line]);
 
   // Concentric diamond frames (4 layers)
   const diamonds = useMemo(() => {
@@ -503,11 +592,11 @@ const KermitLetter = () => {
         new THREE.Vector3(0, -s, 0), new THREE.Vector3(-s, 0, 0),
         new THREE.Vector3(0, s, 0),
       ]);
-      const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: opacities[d] });
+      const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: opacities[d] });
       result.push(new THREE.Line(geom, mat));
     }
     return result;
-  }, []);
+  }, [theme.line]);
 
   return (
     <group ref={groupRef} position={[0, 0, 0.5]}>
@@ -519,7 +608,7 @@ const KermitLetter = () => {
       <GlowSprite position={[0, 0, 0]} size={0.5} opacity={0.5} />
       <mesh position={[0, 0, -0.02]}>
         <sphereGeometry args={[0.35, 16, 16]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.15} />
+        <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.15 * theme.scale)} />
       </mesh>
       {/* Concentric diamond frames */}
       {diamonds.map((d, i) => <primitive key={`dia-${i}`} object={d} />)}
@@ -533,6 +622,7 @@ const KermitLetter = () => {
 
 /* ── Bottom KERMIT Labels (prominent, hex frames) ── */
 const BottomLabels = () => {
+  const theme = useTheme();
   const letters = "KERMIT".split("");
   const spacing = 0.7;
   const startX = -(letters.length - 1) * spacing / 2;
@@ -551,11 +641,11 @@ const BottomLabels = () => {
       new THREE.Vector3(startX - spacing * 0.5, 0, 0),
       new THREE.Vector3(startX + (letters.length - 1) * spacing + spacing * 0.5, 0, 0),
     ]);
-    const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.45 });
+    const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.45 * theme.scale) });
     const line = new THREE.Line(geom, mat);
     line.frustumCulled = false;
     return line;
-  }, []);
+  }, [theme.line]);
 
   // Vertical center line going down from labels
   const centerLine = useMemo(() => {
@@ -563,11 +653,11 @@ const BottomLabels = () => {
       new THREE.Vector3(0, 0, 0),
       new THREE.Vector3(0, -1.0, 0),
     ]);
-    const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.3 });
+    const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.3 * theme.scale) });
     const line = new THREE.Line(geom, mat);
     line.frustumCulled = false;
     return line;
-  }, []);
+  }, [theme.line]);
 
   // Curved arc lines sweeping down from KERMIT to bottom
   const arcLines = useMemo(() => {
@@ -592,29 +682,29 @@ const BottomLabels = () => {
     // Outer left arc — elegant sweep
     const leftPts = smoothArc(startX - spacing * 0.5, 0, midX, -2.2, startX - 3.0, -0.3, 60);
     const leftGeom = new THREE.BufferGeometry().setFromPoints(leftPts);
-    const leftMat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.35 });
+    const leftMat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.35 * theme.scale) });
     result.push(new THREE.Line(leftGeom, leftMat));
 
     // Outer right arc — elegant sweep
     const rightPts = smoothArc(endX, 0, midX, -2.2, endX + 3.0, -0.3, 60);
     const rightGeom = new THREE.BufferGeometry().setFromPoints(rightPts);
-    const rightMat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.35 });
+    const rightMat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.35 * theme.scale) });
     result.push(new THREE.Line(rightGeom, rightMat));
 
     // Inner left arc
     const innerLeftPts = smoothArc(startX - spacing * 0.3, 0, midX, -1.5, startX - 2.0, -0.2, 50);
     const innerLeftGeom = new THREE.BufferGeometry().setFromPoints(innerLeftPts);
-    const innerLeftMat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.25 });
+    const innerLeftMat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.25 * theme.scale) });
     result.push(new THREE.Line(innerLeftGeom, innerLeftMat));
 
     // Inner right arc
     const innerRightPts = smoothArc(endX - spacing * 0.3, 0, midX, -1.5, endX + 2.0, -0.2, 50);
     const innerRightGeom = new THREE.BufferGeometry().setFromPoints(innerRightPts);
-    const innerRightMat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.25 });
+    const innerRightMat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.25 * theme.scale) });
     result.push(new THREE.Line(innerRightGeom, innerRightMat));
 
     return result;
-  }, []);
+  }, [theme.line]);
 
   return (
     <group ref={ref} position={[0, -5.5, 0]}>
@@ -626,25 +716,25 @@ const BottomLabels = () => {
           {/* Hexagonal frame around each letter */}
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.22, 0.002, 6, 6]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.6} />
+            <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.6 * theme.scale)} />
           </mesh>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.28, 0.001, 6, 6]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.3} />
+            <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.3 * theme.scale)} />
           </mesh>
           {/* Dot between letters */}
           {i < letters.length - 1 && (
             <mesh position={[spacing * 0.5, 0, 0]}>
               <sphereGeometry args={[0.02, 10, 10]} />
-              <meshBasicMaterial color="#ffffff" transparent opacity={0.8} />
+              <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.8 * theme.scale)} />
             </mesh>
           )}
           {/* Letter glow */}
           <mesh position={[0, 0, -0.01]}>
             <sphereGeometry args={[0.14, 12, 12]} />
-            <meshBasicMaterial color="#ffffff" transparent opacity={0.05} />
+            <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.05 * theme.scale)} />
           </mesh>
-          <Text fontSize={0.18} color="#ffffff" position={[0, 0, 0.01]} anchorX="center" anchorY="middle" fillOpacity={0.9}>
+          <Text fontSize={0.18} color={theme.text} position={[0, 0, 0.01]} anchorX="center" anchorY="middle" fillOpacity={Math.min(1, 0.9 * theme.scale)}>
             {letter}
           </Text>
         </group>
@@ -652,7 +742,7 @@ const BottomLabels = () => {
       {/* Bottom vertical line (brighter, longer) */}
       <mesh position={[0, -0.6, 0]}>
         <boxGeometry args={[0.0015, 1.0, 0.0015]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.45} />
+        <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.45 * theme.scale)} />
       </mesh>
       {/* Bottom dot — large bright point like reference */}
       <GlowSprite position={[0, -1.2, 0]} size={2.0} opacity={0.15} soft />
@@ -660,20 +750,20 @@ const BottomLabels = () => {
       <GlowSprite position={[0, -1.2, 0]} size={0.5} opacity={0.4} />
       <mesh position={[0, -1.2, 0]}>
         <sphereGeometry args={[0.18, 16, 16]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.18} />
+        <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.18 * theme.scale)} />
       </mesh>
       <mesh position={[0, -1.2, 0]}>
         <sphereGeometry args={[0.1, 12, 12]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.45} />
+        <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.45 * theme.scale)} />
       </mesh>
       <mesh position={[0, -1.2, 0]}>
         <sphereGeometry args={[0.05, 10, 10]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={1} />
+        <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 1 * theme.scale)} />
       </mesh>
       {/* Bottom dot glow halo */}
       <mesh position={[0, -1.2, 0]}>
         <sphereGeometry args={[0.35, 10, 10]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.1} />
+        <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.1 * theme.scale)} />
       </mesh>
     </group>
   );
@@ -681,6 +771,7 @@ const BottomLabels = () => {
 
 /* ── Main Core ── */
 const KermitIdentityCore = () => {
+  const theme = useTheme();
   const coreRef = useRef<THREE.Group>(null!);
   const outerRef = useRef<THREE.Group>(null!);
   const midRef = useRef<THREE.Group>(null!);
@@ -708,7 +799,7 @@ const KermitIdentityCore = () => {
 
     const addLine = (a1: number, r1: number, a2: number, r2: number, opacity: number) => {
       const geom = new THREE.BufferGeometry().setFromPoints([pos(a1, r1), pos(a2, r2)]);
-      const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity });
+      const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, opacity * theme.scale) });
       result.push(new THREE.Line(geom, mat));
     };
 
@@ -784,7 +875,7 @@ const KermitIdentityCore = () => {
     }
 
     return result;
-  }, []);
+  }, [theme.line]);
 
   const hex1Edges = useMemo(() => {
     const result: THREE.Line[] = [];
@@ -796,11 +887,11 @@ const KermitIdentityCore = () => {
         new THREE.Vector3(Math.cos(a1) * r, Math.sin(a1) * r, 0),
         new THREE.Vector3(Math.cos(a2) * r, Math.sin(a2) * r, 0),
       ]);
-      const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.65 });
+      const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.65 * theme.scale) });
       result.push(new THREE.Line(geom, mat));
     }
     return result;
-  }, []);
+  }, [theme.line]);
 
   const hex2Edges = useMemo(() => {
     const result: THREE.Line[] = [];
@@ -812,11 +903,11 @@ const KermitIdentityCore = () => {
         new THREE.Vector3(Math.cos(a1) * r, Math.sin(a1) * r, 0),
         new THREE.Vector3(Math.cos(a2) * r, Math.sin(a2) * r, 0),
       ]);
-      const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.6 });
+      const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.6 * theme.scale) });
       result.push(new THREE.Line(geom, mat));
     }
     return result;
-  }, []);
+  }, [theme.line]);
 
   const hex3Edges = useMemo(() => {
     const result: THREE.Line[] = [];
@@ -828,11 +919,11 @@ const KermitIdentityCore = () => {
         new THREE.Vector3(Math.cos(a1) * r, Math.sin(a1) * r, 0),
         new THREE.Vector3(Math.cos(a2) * r, Math.sin(a2) * r, 0),
       ]);
-      const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.5 });
+      const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.5 * theme.scale) });
       result.push(new THREE.Line(geom, mat));
     }
     return result;
-  }, []);
+  }, [theme.line]);
 
   const radialLines = useMemo(() => {
     const result: THREE.Line[] = [];
@@ -842,11 +933,11 @@ const KermitIdentityCore = () => {
         new THREE.Vector3(Math.cos(a) * 0.8, Math.sin(a) * 0.8, 0),
         new THREE.Vector3(Math.cos(a) * 3.2, Math.sin(a) * 3.2, 0),
       ]);
-      const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.18 });
+        const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.18 * theme.scale) });
       result.push(new THREE.Line(geom, mat));
     }
     return result;
-  }, []);
+  }, [theme.line]);
 
   const crossHexLines = useMemo(() => {
     const result: THREE.Line[] = [];
@@ -858,44 +949,44 @@ const KermitIdentityCore = () => {
         new THREE.Vector3(Math.cos(a) * r[0], Math.sin(a) * r[0], 0),
         new THREE.Vector3(Math.cos(a + 0.06) * r[1], Math.sin(a + 0.06) * r[1], 0),
       ]);
-      const mat = new THREE.LineBasicMaterial({ color: "#ffffff", transparent: true, opacity: 0.08 });
+      const mat = new THREE.LineBasicMaterial({ color: theme.line, transparent: true, opacity: Math.min(1, 0.08 * theme.scale) });
       result.push(new THREE.Line(geom, mat));
     });
     return result;
-  }, []);
+  }, [theme.line]);
 
   return (
     <group ref={coreRef}>
       {/* ── Outer Rings ── */}
       <group ref={outerRef}>
-        <CrispRing radius={2.8} color="#d0e4f8" opacity={0.9} glowRadius={0.008} />
+        <CrispRing radius={2.8} opacity={0.9} glowRadius={0.008} />
         <CrispRing radius={2.84} opacity={0.5} />
         <CrispRing radius={3.0} opacity={0.95} glowRadius={0.008} />
-        <CrispRing radius={3.2} color="#e8f0ff" opacity={1.0} glowRadius={0.01} />
+        <CrispRing radius={3.2} opacity={1.0} glowRadius={0.01} />
         {/* Glow halo on brightest ring */}
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[3.2, 0.035, 16, 120]} />
-          <meshBasicMaterial color="#e8f0ff" transparent opacity={0.18} />
+          <meshBasicMaterial color={theme.glow} transparent opacity={Math.min(1, 0.18 * theme.scale)} />
         </mesh>
         <CrispRing radius={3.24} opacity={0.55} />
         <CrispRing radius={3.4} opacity={0.9} />
-        <CrispRing radius={3.6} color="#d0e4f8" opacity={0.95} glowRadius={0.008} />
+        <CrispRing radius={3.6} opacity={0.95} glowRadius={0.008} />
         <CrispRing radius={3.64} opacity={0.5} />
         <CrispRing radius={3.8} opacity={0.85} />
-        <CrispRing radius={4.0} color="#e0ecfa" opacity={1.0} glowRadius={0.012} />
+        <CrispRing radius={4.0} opacity={1.0} glowRadius={0.012} />
         {/* Glow halo on r=4.0 ring */}
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[4.0, 0.03, 16, 120]} />
-          <meshBasicMaterial color="#e0ecfa" transparent opacity={0.15} />
+          <meshBasicMaterial color={theme.glow} transparent opacity={Math.min(1, 0.15 * theme.scale)} />
         </mesh>
         <CrispRing radius={4.04} opacity={0.45} />
         <CrispRing radius={4.2} opacity={0.85} />
         <CrispRing radius={4.4} opacity={0.8} />
-        <CrispRing radius={4.6} color="#e0ecfa" opacity={0.9} glowRadius={0.01} />
+        <CrispRing radius={4.6} opacity={0.9} glowRadius={0.01} />
         {/* Glow halo on r=4.6 ring (outermost prominent) */}
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[4.6, 0.04, 16, 120]} />
-          <meshBasicMaterial color="#e0ecfa" transparent opacity={0.12} />
+          <meshBasicMaterial color={theme.glow} transparent opacity={Math.min(1, 0.12 * theme.scale)} />
         </mesh>
         <CrispRing radius={4.8} opacity={0.7} />
         <CrispRing radius={5.0} opacity={0.6} />
@@ -913,16 +1004,16 @@ const KermitIdentityCore = () => {
       <group ref={midRef}>
         <CrispRing radius={0.8} opacity={0.8} />
         <CrispRing radius={1.0} opacity={0.75} />
-        <CrispRing radius={1.2} color="#d0e4f8" opacity={0.85} glowRadius={0.006} />
+        <CrispRing radius={1.2} opacity={0.85} glowRadius={0.006} />
         <CrispRing radius={1.24} opacity={0.45} />
         <CrispRing radius={1.4} opacity={0.75} />
-        <CrispRing radius={1.6} color="#c0d8f0" opacity={0.8} glowRadius={0.006} />
+        <CrispRing radius={1.6} opacity={0.8} glowRadius={0.006} />
         <CrispRing radius={1.64} opacity={0.45} />
         <CrispRing radius={1.8} opacity={0.8} />
-        <CrispRing radius={2.0} color="#d0e4f8" opacity={0.85} glowRadius={0.006} />
+        <CrispRing radius={2.0} opacity={0.85} glowRadius={0.006} />
         <CrispRing radius={2.04} opacity={0.45} />
         <CrispRing radius={2.2} opacity={0.75} />
-        <CrispRing radius={2.4} color="#e0ecfa" opacity={0.85} glowRadius={0.006} />
+        <CrispRing radius={2.4} opacity={0.85} glowRadius={0.006} />
         <CrispRing radius={2.6} opacity={0.7} />
         <TickRing radius={1.5} majorTicks={8} minorPerMajor={4} opacity={0.6} tickLength={0.09} />
         <TickRing radius={2.3} majorTicks={12} minorPerMajor={3} opacity={0.55} tickLength={0.08} />
@@ -984,9 +1075,9 @@ const KermitIdentityCore = () => {
           return (
             <group key={`hex-${i}`}>
               <GlowSprite position={[x, y, 0]} size={1.2} opacity={0.18} />
-              <mesh position={[x, y, 0]}><sphereGeometry args={[0.15, 12, 12]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.35} /></mesh>
-              <mesh position={[x, y, 0]}><sphereGeometry args={[0.06, 10, 10]} /><meshBasicMaterial color="#ffffff" transparent opacity={1} /></mesh>
-              <mesh position={[x, y, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.18, 0.002, 16, 32]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.55} /></mesh>
+              <mesh position={[x, y, 0]}><sphereGeometry args={[0.15, 12, 12]} /><meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.35 * theme.scale)} /></mesh>
+              <mesh position={[x, y, 0]}><sphereGeometry args={[0.06, 10, 10]} /><meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 1 * theme.scale)} /></mesh>
+              <mesh position={[x, y, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.18, 0.002, 16, 32]} /><meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.55 * theme.scale)} /></mesh>
             </group>
           );
         })}
@@ -1002,8 +1093,8 @@ const KermitIdentityCore = () => {
           return (
             <group key={`hex2-${i}`}>
               <GlowSprite position={[x, y, 0]} size={0.8} opacity={0.15} />
-              <mesh position={[x, y, 0]}><sphereGeometry args={[0.08, 10, 10]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.9} /></mesh>
-              <mesh position={[x, y, 0]}><sphereGeometry args={[0.14, 10, 10]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.18} /></mesh>
+              <mesh position={[x, y, 0]}><sphereGeometry args={[0.08, 10, 10]} /><meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.9 * theme.scale)} /></mesh>
+              <mesh position={[x, y, 0]}><sphereGeometry args={[0.14, 10, 10]} /><meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.18 * theme.scale)} /></mesh>
             </group>
           );
         })}
@@ -1019,8 +1110,8 @@ const KermitIdentityCore = () => {
           return (
             <group key={`hex3-${i}`}>
               <GlowSprite position={[x, y, 0]} size={0.9} opacity={0.15} />
-              <mesh position={[x, y, 0]}><sphereGeometry args={[0.06, 10, 10]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.85} /></mesh>
-              <mesh position={[x, y, 0]}><sphereGeometry args={[0.11, 10, 10]} /><meshBasicMaterial color="#ffffff" transparent opacity={0.15} /></mesh>
+              <mesh position={[x, y, 0]}><sphereGeometry args={[0.06, 10, 10]} /><meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.85 * theme.scale)} /></mesh>
+              <mesh position={[x, y, 0]}><sphereGeometry args={[0.11, 10, 10]} /><meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.15 * theme.scale)} /></mesh>
             </group>
           );
         })}
@@ -1043,11 +1134,11 @@ const KermitIdentityCore = () => {
       <GlowSprite position={[0, 0, 0.4]} size={0.6} opacity={0.5} />
       <mesh position={[0, 0, 0.4]}>
         <sphereGeometry args={[0.12, 24, 24]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.4} />
+        <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 0.4 * theme.scale)} />
       </mesh>
       <mesh position={[0, 0, 0.4]}>
         <sphereGeometry args={[0.05, 16, 16]} />
-        <meshBasicMaterial color="#ffffff" transparent opacity={1} />
+        <meshBasicMaterial color={theme.line} transparent opacity={Math.min(1, 1 * theme.scale)} />
       </mesh>
 
       {/* ── Cross-hex diagonal connecting lines (more angles) ── */}
@@ -1059,9 +1150,12 @@ const KermitIdentityCore = () => {
 };
 
 /* ── Arc Segment (line-based) ── */
-const ArcSegment = ({ radius, startAngle, endAngle, color = "#ffffff", opacity = 0.3 }: {
+const ArcSegment = ({ radius, startAngle, endAngle, color, opacity = 0.3 }: {
   radius: number; startAngle: number; endAngle: number; color?: string; opacity?: number;
 }) => {
+  const theme = useTheme();
+  const lineColor = color ?? theme.line;
+  const lineOpacity = Math.min(1, opacity * theme.scale);
   const line = useMemo(() => {
     const points: THREE.Vector3[] = [];
     for (let i = 0; i <= 50; i++) {
@@ -1069,9 +1163,9 @@ const ArcSegment = ({ radius, startAngle, endAngle, color = "#ffffff", opacity =
       points.push(new THREE.Vector3(Math.cos(t) * radius, Math.sin(t) * radius, 0));
     }
     const geom = new THREE.BufferGeometry().setFromPoints(points);
-    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity });
+    const mat = new THREE.LineBasicMaterial({ color: lineColor, transparent: true, opacity: lineOpacity });
     return new THREE.Line(geom, mat);
-  }, [radius, startAngle, endAngle, color, opacity]);
+  }, [radius, startAngle, endAngle, lineColor, lineOpacity]);
   return (
     <group rotation={[Math.PI / 2, 0, 0]}>
       <primitive object={line} />
@@ -1080,8 +1174,11 @@ const ArcSegment = ({ radius, startAngle, endAngle, color = "#ffffff", opacity =
 };
 
 /* ── MomentNode (data-driven, supports empty/filled states) ── */
-const MomentNode = ({ moment, onClick, isTouchDevice = false }: { moment: MomentData; onClick: () => void; isTouchDevice?: boolean }) => {
+const MomentNode = ({ moment, onClick, isTouchDevice = false, fontSize = 'medium' }: { moment: MomentData; onClick: () => void; isTouchDevice?: boolean; fontSize?: 'small' | 'medium' | 'large' }) => {
+  const theme = useTheme();
+  const isDark = theme.scale === 1;
   const [hovered, setHovered] = useState(false);
+  const fontScale = (fontSize === 'small' ? 0.8 : fontSize === 'large' ? 1.35 : 1) * (isDark ? 1 : LIGHT_FONT_BOOST);
   const ref = useRef<THREE.Group>(null!);
   const ref2 = useRef<THREE.Group>(null!);
   const pulseRef = useRef<THREE.Mesh>(null!);
@@ -1106,13 +1203,13 @@ const MomentNode = ({ moment, onClick, isTouchDevice = false }: { moment: Moment
     if (pulseRef.current) {
       const pulse = 0.6 + Math.sin(t * 2) * 0.4;
       const mat = pulseRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = hovered ? 0.35 : (hasContent ? 0.18 : 0.06) * pulse;
+      mat.opacity = Math.min(1, (hovered ? 0.35 : (hasContent ? 0.18 : 0.06)) * pulse * theme.scale);
       pulseRef.current.scale.setScalar(1 + pulse * 0.4);
     }
     if (glowRef.current) {
       const pulse = 0.7 + Math.sin(t * 1.5) * 0.3;
       const mat = glowRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = hovered ? 0.28 : (hasContent ? 0.1 : 0.03) * pulse;
+      mat.opacity = Math.min(1, (hovered ? 0.28 : (hasContent ? 0.1 : 0.03)) * pulse * theme.scale);
     }
   });
 
@@ -1121,11 +1218,11 @@ const MomentNode = ({ moment, onClick, isTouchDevice = false }: { moment: Moment
       new THREE.Vector3(0, 0, 0),
       new THREE.Vector3(-moment.position[0] * 0.3, -moment.position[1] * 0.3, -moment.position[2] * 0.3),
     ]);
-    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: hasContent ? 0.25 : 0.08 });
+    const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: Math.min(1, (hasContent ? 0.25 : 0.08) * theme.scale) });
     const line = new THREE.Line(geom, mat);
     line.frustumCulled = false;
     return line;
-  }, [moment.position, color, hasContent]);
+  }, [moment.position, color, hasContent, theme.scale]);
 
   return (
     <group position={moment.position}>
@@ -1134,17 +1231,17 @@ const MomentNode = ({ moment, onClick, isTouchDevice = false }: { moment: Moment
         {/* Outer pulsing glow ring */}
         <mesh ref={glowRef} rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[0.55, 0.005, 12, 32]} />
-          <meshBasicMaterial color={color} transparent opacity={hasContent ? 0.1 : 0.03} />
+          <meshBasicMaterial color={color} transparent opacity={Math.min(1, (hasContent ? 0.1 : 0.03) * theme.scale)} />
         </mesh>
         {/* Pulsing glow sphere */}
         <mesh ref={pulseRef}>
           <sphereGeometry args={[0.42, 16, 16]} />
-          <meshBasicMaterial color={color} transparent opacity={hasContent ? 0.18 : 0.06} />
+          <meshBasicMaterial color={color} transparent opacity={Math.min(1, (hasContent ? 0.18 : 0.06) * theme.scale)} />
         </mesh>
         {/* Static outer glow sphere */}
         <mesh>
           <sphereGeometry args={[0.65, 12, 12]} />
-          <meshBasicMaterial color={color} transparent opacity={hasContent ? 0.06 : 0.02} />
+          <meshBasicMaterial color={color} transparent opacity={Math.min(1, (hasContent ? 0.06 : 0.02) * theme.scale)} />
         </mesh>
         {/* Clickable sphere */}
         <mesh
@@ -1153,35 +1250,35 @@ const MomentNode = ({ moment, onClick, isTouchDevice = false }: { moment: Moment
           onPointerOut={isTouchDevice ? undefined : () => setHovered(false)}
         >
           <sphereGeometry args={[isTouchDevice ? 0.4 : (hovered ? 0.36 : 0.26), 16, 16]} />
-          <meshBasicMaterial color={color} transparent opacity={hovered ? 0.3 : (hasContent ? 0.15 : 0.05)} />
+          <meshBasicMaterial color={color} transparent opacity={Math.min(1, (hovered ? 0.3 : (hasContent ? 0.15 : 0.05)) * theme.scale)} />
         </mesh>
         {/* Core dot */}
         <mesh>
           <sphereGeometry args={[hovered ? 0.14 : 0.1, 12, 12]} />
-          <meshBasicMaterial color={hovered ? "#ffffff" : color} transparent opacity={hasContent ? 1 : 0.4} />
+          <meshBasicMaterial color={hovered ? theme.line : color} transparent opacity={Math.min(1, (hasContent ? 1 : 0.4) * theme.scale)} />
         </mesh>
         {/* Core glow halo */}
         <mesh>
           <sphereGeometry args={[0.16, 10, 10]} />
-          <meshBasicMaterial color={color} transparent opacity={hasContent ? (hovered ? 0.5 : 0.3) : 0.08} />
+          <meshBasicMaterial color={color} transparent opacity={Math.min(1, (hasContent ? (hovered ? 0.5 : 0.3) : 0.08) * theme.scale)} />
         </mesh>
         {/* Orbit ring 1 */}
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <torusGeometry args={[0.36, 0.004, 12, 32]} />
-          <meshBasicMaterial color={color} transparent opacity={hovered ? 0.7 : (hasContent ? 0.3 : 0.1)} />
+          <meshBasicMaterial color={color} transparent opacity={Math.min(1, (hovered ? 0.7 : (hasContent ? 0.3 : 0.1)) * theme.scale)} />
         </mesh>
         {/* Orbit ring 2 (rotating) */}
         <group ref={ref}>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.2, 0.003, 10, 24]} />
-            <meshBasicMaterial color={hovered ? "#ffffff" : color} transparent opacity={hovered ? 0.5 : (hasContent ? 0.2 : 0.06)} />
+            <meshBasicMaterial color={hovered ? theme.line : color} transparent opacity={Math.min(1, (hovered ? 0.5 : (hasContent ? 0.2 : 0.06)) * theme.scale)} />
           </mesh>
         </group>
         {/* Orbit ring 3 (counter-rotating) */}
         <group ref={ref2}>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[0.28, 0.003, 10, 24]} />
-            <meshBasicMaterial color={color} transparent opacity={hasContent ? 0.15 : 0.04} />
+            <meshBasicMaterial color={color} transparent opacity={Math.min(1, (hasContent ? 0.15 : 0.04) * theme.scale)} />
           </mesh>
         </group>
         {/* Cardinal dots */}
@@ -1189,11 +1286,11 @@ const MomentNode = ({ moment, onClick, isTouchDevice = false }: { moment: Moment
           <group key={i}>
             <mesh position={[Math.cos(a) * 0.36, Math.sin(a) * 0.36, 0]}>
               <sphereGeometry args={[0.025, 6, 6]} />
-              <meshBasicMaterial color={color} transparent opacity={hovered ? 0.9 : (hasContent ? 0.4 : 0.12)} />
+              <meshBasicMaterial color={color} transparent opacity={Math.min(1, (hovered ? 0.9 : (hasContent ? 0.4 : 0.12)) * theme.scale)} />
             </mesh>
             <mesh position={[Math.cos(a) * 0.36, Math.sin(a) * 0.36, 0]}>
               <sphereGeometry args={[0.05, 6, 6]} />
-              <meshBasicMaterial color={color} transparent opacity={hovered ? 0.35 : (hasContent ? 0.12 : 0.04)} />
+              <meshBasicMaterial color={color} transparent opacity={Math.min(1, (hovered ? 0.35 : (hasContent ? 0.12 : 0.04)) * theme.scale)} />
             </mesh>
           </group>
         ))}
@@ -1201,9 +1298,9 @@ const MomentNode = ({ moment, onClick, isTouchDevice = false }: { moment: Moment
         <Billboard follow={true} lockX={false} lockY={false} lockZ={false}>
           <Text
             position={[0, -0.7, 0]}
-            fontSize={0.12}
-            color="white"
-            fillOpacity={hovered ? 1 : (hasContent ? 0.85 : 0.35)}
+            fontSize={0.16 * fontScale}
+            color={theme.text}
+            fillOpacity={Math.min(1, (hovered ? 1 : (hasContent ? 0.85 : 0.35)) * theme.scale)}
             anchorX="center"
             fontWeight="bold"
           >
@@ -1211,10 +1308,10 @@ const MomentNode = ({ moment, onClick, isTouchDevice = false }: { moment: Moment
           </Text>
           {/* Sub-label */}
           <Text
-            position={[0, -0.86, 0]}
-            fontSize={0.06}
+            position={[0, -0.86 - (fontScale - 1) * 0.1, 0]}
+            fontSize={0.08 * fontScale}
             color={color}
-            fillOpacity={hovered ? 0.95 : (hasContent ? 0.55 : 0.15)}
+            fillOpacity={Math.min(1, (hovered ? 0.95 : (hasContent ? 0.55 : 0.15)) * theme.scale)}
             anchorX="center"
           >
             {hasContent ? (hovered ? 'CLICK TO EXPLORE' : moment.subtitle || moment.category.toUpperCase()) : 'COMING SOON'}
@@ -1223,9 +1320,9 @@ const MomentNode = ({ moment, onClick, isTouchDevice = false }: { moment: Moment
           {hovered && hasContent && (
             <group position={[0, 0.9, 0]}>
               <Text
-                fontSize={0.05}
-                color="white"
-                fillOpacity={0.9}
+                fontSize={0.065 * fontScale}
+                color={theme.text}
+                fillOpacity={Math.min(1, 0.9 * theme.scale)}
                 anchorX="center"
                 maxWidth={3}
               >
@@ -1241,6 +1338,7 @@ const MomentNode = ({ moment, onClick, isTouchDevice = false }: { moment: Moment
 
 /* ── Category Connection Lines (arc between same-category nodes) ── */
 const CategoryLines = () => {
+  const theme = useTheme();
   const lines = useMemo(() => {
     const result: THREE.Line[] = [];
     // Group nodes by category
@@ -1267,7 +1365,7 @@ const CategoryLines = () => {
           const pts = curve.getPoints(32);
           const geom = new THREE.BufferGeometry().setFromPoints(pts);
           const color = nodes[0].color;
-          const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.12 });
+          const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: Math.min(1, 0.12 * theme.scale) });
           const line = new THREE.Line(geom, mat);
           line.frustumCulled = false;
           result.push(line);
@@ -1285,6 +1383,7 @@ const CategoryLines = () => {
 
 /* ── Decorative Particles (sparse, subtle star-like dust) ── */
 const DecorativeParticles = () => {
+  const theme = useTheme();
   const particles = useMemo(() => {
     const result: { x: number; y: number; z: number; size: number; opacity: number }[] = [];
     const positions: [number, number, number][] = [
@@ -1304,7 +1403,7 @@ const DecorativeParticles = () => {
       {particles.map((p, i) => (
         <mesh key={i} position={[p.x, p.y, p.z]}>
           <sphereGeometry args={[p.size, 6, 6]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={p.opacity} />
+          <meshBasicMaterial color={theme.star} transparent opacity={Math.min(1, p.opacity * theme.scale)} />
         </mesh>
       ))}
     </group>
@@ -1312,8 +1411,9 @@ const DecorativeParticles = () => {
 };
 
 /* ── Scene ── */
-export default function Scene({ onLocationChange, onNodeClick, onRegisterFlyTo, isTouchDevice = false }: { onLocationChange: (loc: string) => void; onNodeClick: (nodeId: string) => void; onRegisterFlyTo?: (fn: (pos: [number, number, number], id: string) => void) => void; isTouchDevice?: boolean }) {
+export default function Scene({ onLocationChange, onNodeClick, onRegisterFlyTo, isTouchDevice = false, isDark = true, fontSize = 'medium' }: { onLocationChange: (loc: string) => void; onNodeClick: (nodeId: string) => void; onRegisterFlyTo?: (fn: (pos: [number, number, number], id: string) => void) => void; isTouchDevice?: boolean; isDark?: boolean; fontSize?: 'small' | 'medium' | 'large' }) {
   const { camera } = useThree();
+  const theme = isDark ? darkTheme : lightTheme;
 
   const flyTo = useCallback((pos: [number, number, number], label: string) => {
     gsap.to(camera.position, {
@@ -1341,8 +1441,9 @@ export default function Scene({ onLocationChange, onNodeClick, onRegisterFlyTo, 
   }, [camera, onLocationChange]);
 
   return (
-    <>
-      <color attach="background" args={['#020617']} />
+    <ThemeContext.Provider value={theme}>
+      <>
+        <color attach="background" args={[isDark ? '#020617' : '#f0f4f8']} />
       <ambientLight intensity={1} />
       <StarField />
       <NebulaStreaks />
@@ -1357,6 +1458,7 @@ export default function Scene({ onLocationChange, onNodeClick, onRegisterFlyTo, 
           moment={m}
           onClick={() => flyTo(m.position, m.id)}
           isTouchDevice={isTouchDevice}
+          fontSize={fontSize}
         />
       ))}
       {!isTouchDevice && <MouseTrail />}
@@ -1366,6 +1468,7 @@ export default function Scene({ onLocationChange, onNodeClick, onRegisterFlyTo, 
           <meshBasicMaterial transparent opacity={0} />
         </mesh>
       )}
-    </>
+      </>
+    </ThemeContext.Provider>
   );
 }

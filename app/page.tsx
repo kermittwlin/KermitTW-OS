@@ -124,6 +124,8 @@ export default function Page() {
             onNodeClick={handleNodeClick}
             onRegisterFlyTo={registerFlyTo}
             isTouchDevice={isTouchDevice}
+            isDark={isDark}
+            fontSize={settings.fontSize}
           />
         </Suspense>
       </Canvas>
@@ -139,6 +141,7 @@ export default function Page() {
         onNodeSelect={handleNodeSelect}
         activeNodeId={activePanel}
         isDark={isDark}
+        panelOpen={panelOpen}
       />
 
       {/* Content Panel */}
@@ -156,6 +159,7 @@ export default function Page() {
           tags={activeMoment.tags}
           panelPosition={settings.panelPosition}
           fontSize={settings.fontSize}
+          isDark={isDark}
           onImageClick={handleImageClick}
         />
       )}

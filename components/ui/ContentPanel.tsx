@@ -16,6 +16,7 @@ interface ContentPanelProps {
   tags?: string[];
   panelPosition?: 'left' | 'right';
   fontSize?: 'small' | 'medium' | 'large';
+  isDark?: boolean;
   onImageClick?: (src: string, alt?: string) => void;
 }
 
@@ -104,7 +105,7 @@ function MediaEmbed({ media, color, onImageClick }: { media: MomentMedia; color:
   return null;
 }
 
-export default function ContentPanel({ isOpen, onClose, title, subtitle, content, color, date, media, tags, panelPosition = 'right', fontSize = 'medium', onImageClick }: ContentPanelProps) {
+export default function ContentPanel({ isOpen, onClose, title, subtitle, content, color, date, media, tags, panelPosition = 'right', fontSize = 'medium', isDark = true, onImageClick }: ContentPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const dragStartY = useRef(0);
@@ -169,9 +170,9 @@ export default function ContentPanel({ isOpen, onClose, title, subtitle, content
         className="w-full sm:max-w-md max-h-[70vh] sm:max-h-[80vh] pointer-events-auto rounded-t-2xl sm:rounded-2xl overflow-y-auto scrollbar-thin"
         style={{
           ...fontSizeMap[fontSize],
-          backgroundColor: 'rgba(8, 12, 28, 0.95)',
+          backgroundColor: isDark ? 'rgba(8, 12, 28, 0.95)' : 'rgba(240, 244, 248, 0.95)',
           border: `1px solid ${color}25`,
-          boxShadow: `0 0 60px ${color}10, 0 20px 40px rgba(0,0,0,0.5)`,
+          boxShadow: isDark ? `0 0 60px ${color}10, 0 20px 40px rgba(0,0,0,0.5)` : `0 0 60px ${color}10, 0 20px 40px rgba(0,0,0,0.15)`,
           backdropFilter: 'blur(20px)',
         }}
       >
@@ -183,8 +184,8 @@ export default function ContentPanel({ isOpen, onClose, title, subtitle, content
           onTouchEnd={handleTouchEnd}
           data-touch-drag
         >
-          <div className="w-10 h-1 rounded-full bg-white/20 mb-1.5" />
-          <span className="text-[9px] text-white/20 tracking-wider">向下滑動關閉</span>
+          <div className={`w-10 h-1 rounded-full mb-1.5 ${isDark ? 'bg-white/20' : 'bg-black/15'}`} />
+          <span className={`text-[9px] tracking-wider ${isDark ? 'text-white/20' : 'text-gray-400'}`}>向下滑動關閉</span>
         </div>
         {/* Header with gradient */}
         <div
@@ -201,13 +202,13 @@ export default function ContentPanel({ isOpen, onClose, title, subtitle, content
                 style={{ backgroundColor: color, boxShadow: `0 0 12px ${color}80` }}
               />
               <div>
-                <h2 className="font-medium tracking-wider text-white" style={{ fontSize: '1.15em' }}>{title}</h2>
+                <h2 className={`font-medium tracking-wider ${isDark ? 'text-white' : 'text-gray-800'}`} style={{ fontSize: '1.15em' }}>{title}</h2>
                 {subtitle && (
-                  <p className="text-white/40 text-[11px] mt-0.5">{subtitle}</p>
+                  <p className={`text-[11px] mt-0.5 ${isDark ? 'text-white/40' : 'text-gray-500'}`}>{subtitle}</p>
                 )}
               </div>
               {date && (
-                <span className="ml-auto text-white/30 text-[10px] font-mono">{date}</span>
+                <span className={`ml-auto text-[10px] font-mono ${isDark ? 'text-white/30' : 'text-gray-400'}`}>{date}</span>
               )}
             </div>
 
@@ -215,7 +216,7 @@ export default function ContentPanel({ isOpen, onClose, title, subtitle, content
             {media && <MediaEmbed media={media} color={color} onImageClick={onImageClick} />}
 
             {/* Description */}
-            <p className="text-white/60 leading-relaxed">
+            <p className={`leading-relaxed ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
               {content}
             </p>
 
@@ -243,12 +244,12 @@ export default function ContentPanel({ isOpen, onClose, title, subtitle, content
 
         {/* Footer */}
         <div className="px-6 pb-5 pt-2 flex justify-between items-center">
-          <div className="text-[9px] text-white/20 tracking-wider uppercase">
+          <div className={`text-[9px] tracking-wider uppercase ${isDark ? 'text-white/20' : 'text-gray-400'}`}>
             KERMIT OS · {title}
           </div>
           <button
             onClick={onClose}
-            className="px-5 py-2.5 text-[10px] tracking-[0.15em] uppercase rounded-full transition-all hover:bg-white/5 min-h-[44px]"
+            className={`px-5 py-2.5 text-[10px] tracking-[0.15em] uppercase rounded-full transition-all min-h-[44px] ${isDark ? 'hover:bg-white/5' : 'hover:bg-black/5'}`}
             style={{ border: `1px solid ${color}30`, color: `${color}` }}
           >
             Close
