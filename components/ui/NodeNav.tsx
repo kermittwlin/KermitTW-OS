@@ -20,17 +20,17 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark }: NodeNavP
 
   return (
     <>
-      {/* Toggle button — always visible on right edge */}
+      {/* Toggle button — always on right edge, moves with sidebar */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`fixed top-1/2 -translate-y-1/2 z-50 p-3 transition-all duration-300 pointer-events-auto min-h-[44px] min-w-[44px] flex items-center justify-center rounded-l-lg ${
           isDark
-            ? 'bg-white/15 hover:bg-white/25 text-white/80 border border-white/20'
-            : 'bg-black/15 hover:bg-black/25 text-gray-700 border border-black/20'
+            ? 'bg-blue-500/30 hover:bg-blue-500/50 text-white border border-blue-400/40 shadow-lg shadow-blue-500/20'
+            : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-800 border border-blue-500/30 shadow-lg shadow-blue-600/15'
         }`}
-        style={{ right: isOpen ? 'calc(85vw)' : 0, maxWidth: isOpen ? 'calc(100% - 280px)' : undefined }}
+        style={{ right: isOpen ? 280 : 0 }}
       >
-        {isOpen ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        {isOpen ? <ChevronRight size={20} strokeWidth={2.5} /> : <ChevronLeft size={20} strokeWidth={2.5} />}
       </button>
 
       {/* Backdrop overlay */}
