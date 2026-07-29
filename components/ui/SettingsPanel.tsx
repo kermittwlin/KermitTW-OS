@@ -23,8 +23,8 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
   const [isHidden, setIsHidden] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const isDark = settings.theme === 'dark';
 
-  // Keyboard shortcut: Ctrl + . to toggle
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === '.') {
@@ -36,7 +36,6 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // Animate panel open/close
   useEffect(() => {
     if (panelRef.current) {
       if (isOpen) {
@@ -52,7 +51,6 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
     }
   }, [isOpen]);
 
-  // Animate button pulse on hide/show
   useEffect(() => {
     if (buttonRef.current && isHidden) {
       gsap.fromTo(buttonRef.current,
@@ -66,12 +64,24 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
     onSettingsChange({ ...settings, [key]: value });
   };
 
+  const panelBg = isDark ? 'rgba(8, 12, 28, 0.95)' : 'rgba(240, 244, 248, 0.95)';
+  const panelBorder = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+  const textColor = isDark ? 'text-white' : 'text-gray-800';
+  const mutedColor = isDark ? 'text-white/50' : 'text-gray-500';
+  const btnActiveBg = isDark ? 'bg-white/15' : 'bg-black/15';
+  const btnInactiveBg = isDark ? 'bg-white/5' : 'bg-black/5';
+  const btnHoverBg = isDark ? 'hover:bg-white/10' : 'hover:bg-black/10';
+
   if (isHidden) {
     return (
       <button
         ref={buttonRef}
         onClick={() => setIsHidden(false)}
-        className="fixed bottom-6 left-6 z-[60] w-11 h-11 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/50 hover:text-white/80 hover:bg-white/15 transition-all cursor-pointer"
+        className={`fixed bottom-6 left-6 z-[60] w-11 h-11 rounded-full backdrop-blur-md border flex items-center justify-center transition-all cursor-pointer ${
+          isDark
+            ? 'bg-white/15 border-white/25 text-white/70 hover:text-white/90 hover:bg-white/25'
+            : 'bg-black/15 border-black/25 text-gray-600 hover:text-gray-900 hover:bg-black/25'
+        }`}
         title="顯示設定"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -84,25 +94,23 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
 
   return (
     <div className="fixed bottom-6 left-6 z-[60]">
-      {/* Settings Panel */}
       {isOpen && (
         <div
           ref={panelRef}
           className="absolute bottom-14 left-0 w-64 rounded-xl overflow-hidden pointer-events-auto z-[60]"
           style={{
-            backgroundColor: 'rgba(8, 12, 28, 0.95)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
+            backgroundColor: panelBg,
+            border: `1px solid ${panelBorder}`,
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
           }}
         >
-          {/* Header */}
-          <div className="px-4 py-3 border-b border-white/10">
-            <h3 className="text-white/80 text-xs font-medium tracking-wider">設定</h3>
+          <div className={`px-4 py-3 border-b ${isDark ? 'border-white/10' : 'border-black/10'}`}>
+            <h3 className={`${textColor} text-xs font-medium tracking-wider`}>設定</h3>
           </div>
 
           {/* Theme */}
-          <div className="px-4 py-3 border-b border-white/5">
-            <label className="text-white/50 text-[10px] uppercase tracking-wider block mb-2">主題</label>
+          <div className={`px-4 py-3 border-b ${isDark ? 'border-white/5' : 'border-black/5'}`}>
+            <label className={`${mutedColor} text-[10px] uppercase tracking-wider block mb-2`}>主題</label>
             <div className="flex gap-1.5">
               {(['dark', 'light'] as Theme[]).map(t => (
                 <button
@@ -110,8 +118,8 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
                   onClick={() => update('theme', t)}
                   className={`flex-1 px-2 py-2.5 rounded text-[10px] transition-all cursor-pointer min-h-[44px] ${
                     settings.theme === t
-                      ? 'bg-white/15 text-white/90 border border-white/20'
-                      : 'bg-white/5 text-white/40 border border-transparent hover:bg-white/10'
+                      ? `${btnActiveBg} ${textColor} border ${isDark ? 'border-white/20' : 'border-black/20'}`
+                      : `${btnInactiveBg} ${mutedColor} border border-transparent ${btnHoverBg}`
                   }`}
                 >
                   {t === 'dark' ? '深色' : '亮色'}
@@ -121,8 +129,8 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
           </div>
 
           {/* Font Size */}
-          <div className="px-4 py-3 border-b border-white/5">
-            <label className="text-white/50 text-[10px] uppercase tracking-wider block mb-2">字體大小</label>
+          <div className={`px-4 py-3 border-b ${isDark ? 'border-white/5' : 'border-black/5'}`}>
+            <label className={`${mutedColor} text-[10px] uppercase tracking-wider block mb-2`}>字體大小</label>
             <div className="flex gap-1.5">
               {(['small', 'medium', 'large'] as FontSize[]).map(s => (
                 <button
@@ -130,8 +138,8 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
                   onClick={() => update('fontSize', s)}
                   className={`flex-1 px-2 py-2.5 rounded text-[10px] transition-all cursor-pointer min-h-[44px] ${
                     settings.fontSize === s
-                      ? 'bg-white/15 text-white/90 border border-white/20'
-                      : 'bg-white/5 text-white/40 border border-transparent hover:bg-white/10'
+                      ? `${btnActiveBg} ${textColor} border ${isDark ? 'border-white/20' : 'border-black/20'}`
+                      : `${btnInactiveBg} ${mutedColor} border border-transparent ${btnHoverBg}`
                   }`}
                 >
                   {s === 'small' ? '小' : s === 'medium' ? '中' : '大'}
@@ -141,8 +149,8 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
           </div>
 
           {/* Panel Position */}
-          <div className="px-4 py-3 border-b border-white/5">
-            <label className="text-white/50 text-[10px] uppercase tracking-wider block mb-2">面板位置</label>
+          <div className={`px-4 py-3 border-b ${isDark ? 'border-white/5' : 'border-black/5'}`}>
+            <label className={`${mutedColor} text-[10px] uppercase tracking-wider block mb-2`}>面板位置</label>
             <div className="flex gap-1.5">
               {(['left', 'right'] as PanelPosition[]).map(p => (
                 <button
@@ -150,8 +158,8 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
                   onClick={() => update('panelPosition', p)}
                   className={`flex-1 px-2 py-2.5 rounded text-[10px] transition-all cursor-pointer min-h-[44px] ${
                     settings.panelPosition === p
-                      ? 'bg-white/15 text-white/90 border border-white/20'
-                      : 'bg-white/5 text-white/40 border border-transparent hover:bg-white/10'
+                      ? `${btnActiveBg} ${textColor} border ${isDark ? 'border-white/20' : 'border-black/20'}`
+                      : `${btnInactiveBg} ${mutedColor} border border-transparent ${btnHoverBg}`
                   }`}
                 >
                   {p === 'left' ? '左側' : '右側'}
@@ -160,31 +168,33 @@ export default function SettingsPanel({ settings, onSettingsChange }: SettingsPa
             </div>
           </div>
 
-          {/* Hide Button */}
           <div className="px-4 py-3">
             <button
               onClick={() => setIsHidden(true)}
-              className="w-full px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white/50 text-[10px] hover:bg-white/10 hover:text-white/70 transition-all cursor-pointer flex items-center justify-center gap-2 min-h-[44px]"
+              className={`w-full px-3 py-2.5 rounded-lg border text-[10px] transition-all cursor-pointer flex items-center justify-center gap-2 min-h-[44px] ${
+                isDark
+                  ? 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70'
+                  : 'bg-black/5 border-black/10 text-gray-500 hover:bg-black/10 hover:text-gray-700'
+              }`}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
                 <line x1="1" y1="1" x2="23" y2="23" />
               </svg>
               隱藏設定
-              <span className="text-white/20 ml-1 hidden sm:inline">Ctrl + .</span>
+              <span className={`${isDark ? 'text-white/20' : 'text-gray-400'} ml-1 hidden sm:inline`}>Ctrl + .</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* Toggle Button */}
       <button
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={`w-11 h-11 rounded-full backdrop-blur-md border flex items-center justify-center transition-all cursor-pointer ${
           isOpen
-            ? 'bg-white/15 border-white/25 text-white/90'
-            : 'bg-white/10 border-white/20 text-white/50 hover:text-white/80 hover:bg-white/15'
+            ? isDark ? 'bg-white/20 border-white/30 text-white/90' : 'bg-black/20 border-black/30 text-gray-800'
+            : isDark ? 'bg-white/15 border-white/25 text-white/70 hover:text-white/90 hover:bg-white/25' : 'bg-black/15 border-black/25 text-gray-600 hover:text-gray-900 hover:bg-black/25'
         }`}
         title="設定"
       >

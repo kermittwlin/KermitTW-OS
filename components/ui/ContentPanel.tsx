@@ -20,9 +20,9 @@ interface ContentPanelProps {
 }
 
 const fontSizeMap = {
-  small: { fontSize: '11px', lineHeight: '1.4' },
-  medium: { fontSize: '13px', lineHeight: '1.6' },
-  large: { fontSize: '15px', lineHeight: '1.7' },
+  small: { fontSize: '12px', lineHeight: '1.5' },
+  medium: { fontSize: '15px', lineHeight: '1.7' },
+  large: { fontSize: '19px', lineHeight: '1.8' },
 };
 
 function MediaEmbed({ media, color, onImageClick }: { media: MomentMedia; color: string; onImageClick?: (src: string, alt?: string) => void }) {

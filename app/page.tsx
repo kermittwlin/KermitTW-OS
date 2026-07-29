@@ -144,6 +144,7 @@ export default function Page() {
       {/* Content Panel */}
       {activeMoment && (
         <ContentPanel
+          key={`${activeMoment.id}-${settings.panelPosition}`}
           isOpen={panelOpen}
           onClose={closePanel}
           title={activeMoment.title}
