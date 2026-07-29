@@ -23,7 +23,7 @@ export default function Page() {
   const [settings, setSettings] = useState<Settings>({
     theme: 'dark',
     fontSize: 'medium',
-    panelPosition: 'right',
+    panelPosition: 'left',
   });
   const [lightbox, setLightbox] = useState<{ src: string; alt?: string } | null>(null);
   const flyToRef = useRef<((pos: [number, number, number], id: string) => void) | null>(null);

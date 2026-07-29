@@ -24,7 +24,7 @@ export default function NodeNav({ onNodeSelect, activeNodeId, isDark, panelOpen 
       {/* Toggle button — always on right edge, moves with sidebar */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed top-1/2 -translate-y-1/2 p-3 transition-all duration-300 pointer-events-auto min-h-[44px] min-w-[44px] flex items-center justify-center rounded-l-lg ${panelOpen ? 'z-30' : 'z-50'} ${
+        className={`fixed top-1/2 -translate-y-1/2 p-3 transition-all duration-300 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-l-lg ${panelOpen ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto z-50'} ${
           isDark
             ? 'bg-blue-500/30 hover:bg-blue-500/50 text-white border border-blue-400/40 shadow-lg shadow-blue-500/20'
             : 'bg-blue-600/20 hover:bg-blue-600/40 text-blue-800 border border-blue-500/30 shadow-lg shadow-blue-600/15'
