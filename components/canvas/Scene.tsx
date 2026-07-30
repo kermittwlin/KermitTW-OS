@@ -1029,7 +1029,7 @@ const MomentNode = ({ moment, onClick, isTouchDevice = false, fontSize = 'medium
   const theme = useTheme();
   const isDark = theme.scale === 1;
   const [hovered, setHovered] = useState(false);
-  const fontScale = (fontSize === 'small' ? 0.8 : fontSize === 'large' ? 1.35 : 1) * (isDark ? 1 : LIGHT_FONT_BOOST);
+  const fontScale = (fontSize === 'small' ? 0.8 : fontSize === 'large' ? 1.35 : 1) * LIGHT_FONT_BOOST;
   const ref = useRef<THREE.Group>(null!);
   const ref2 = useRef<THREE.Group>(null!);
   const pulseRef = useRef<THREE.Mesh>(null!);
